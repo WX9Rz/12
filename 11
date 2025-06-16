@@ -1,57 +1,57 @@
 #-----------ISP-----------
-{ISP_TO_HQ_RTR_IP} 
-{ISP_TO_HQ_RTR_MASK} 
+s/{ISP_TO_HQ_RTR_IP}/172.16.4.1/g
+s/{ISP_TO_HQ_RTR_MASK}/28/g
 
-{ISP_TO_BR_RTR_IP} 
-{ISP_TO_BR_RTR_MASK} 
+s/{ISP_TO_BR_RTR_IP}/172.16.5.1/g
+s/{ISP_TO_BR_RTR_MASK}/28/g
 
 #-----------HQ-RTR-----------
-{HQ_RTR_TO_ISP_IP} 
-{HQ_RTR_TO_ISP_MASK} 
+s/{HQ_RTR_TO_ISP_IP}/172.16.4.4/g
+s/{HQ_RTR_TO_ISP_MASK}/28/g
 
-{VLAN_TO_HQ_SRV} 100
-{HQ_RTR_TO_HQ_SRV_IP} 
-{HQ_RTR_TO_HQ_SRV_MASK} 
+s/{VLAN_TO_HQ_SRV}/100/g
+s/{HQ_RTR_TO_HQ_SRV_IP}/192.168.1.1/g
+s/{HQ_RTR_TO_HQ_SRV_MASK}/26/g
 #например 1.1.168.192, если на строку выше 192.168.1.1
-{REVERSE_IP_HQ_RTR}
+s/{REVERSE_IP_HQ_RTR}/1.1.168.192/g
 
-{VLAN_TO_HQ_CLI} 200
-{HQ_RTR_TO_HQ_CLI_IP} 
-{HQ_RTR_TO_HQ_CLI_MASK} 
+s/{VLAN_TO_HQ_CLI}/200/g
+s/{HQ_RTR_TO_HQ_CLI_IP}/192.168.2.1/g
+s/{HQ_RTR_TO_HQ_CLI_MASK}/28/g
 
-{VLAN_MANAGEMENT} 999
-{HQ_RTR_MANAGEMENT_IP} 
-{HQ_RTR_MANAGEMENT_MASK} 
+s/{VLAN_MANAGEMENT}/999/g
+s/{HQ_RTR_MANAGEMENT_IP}/192.168.99.1/g
+s/{HQ_RTR_MANAGEMENT_MASK}/29/g
 
-{HQ_RTR_GRE_IP} 172.16.0.1
-{HQ_RTR_GRE_MASK} 30
-{MTU} 1400
+s/{HQ_RTR_GRE_IP}/172.16.0.1/g
+s/{HQ_RTR_GRE_MASK}/30/g
+s/{MTU}/1400/g
 
 #-----------BR-RTR-----------
-{BR_RTR_TO_ISP_IP} 
-{BR_RTR_TO_ISP_MASK} 
+s/{BR_RTR_TO_ISP_IP}/172.16.5.5/g
+s/{BR_RTR_TO_ISP_MASK}/28/g
 
-{BR_RTR_TO_BR_SRV_IP} 
-{BR_RTR_TO_BR_SRV_MASK} 
+s/{BR_RTR_TO_BR_SRV_IP}/192.168.3.1/g
+s/{BR_RTR_TO_BR_SRV_MASK}/27/g
 
-{BR_RTR_GRE_IP} 172.16.0.2
-{BR_RTR_GRE_MASK} 30
-{MTU} 1400
+s/{BR_RTR_GRE_IP}/172.16.0.2/g
+s/{BR_RTR_GRE_MASK}/30/g
+s/{MTU}/1400/g
 
 #-----------HQ-SRV-----------
-{HQ_SRV_IP} 
-{HQ_SRV_MASK} 
-{REVERSE_IP_HQ_SRV}
+s/{HQ_SRV_IP}/192.168.1.10/g
+s/{HQ_SRV_MASK}/26/g
+s/{REVERSE_IP_HQ_SRV}/10.1.168.192/g
 
 #-----------BR-SRV-----------
-{BR_SRV_IP} 
-{BR_SRV_MASK} 
+s/{BR_SRV_IP}/192.168.3.10/g
+s/{BR_SRV_MASK}/27/g
 
 #-----------HQ-CLI-----------
-{HQ_CLI_IP} 
-{HQ_CLI_MASK} 
-{HQ_CLI_FULL_MASK} 
-{REVERSE_IP_HQ_CLI}
+s/{HQ_CLI_IP}//g
+s/{HQ_CLI_MASK}//g
+s/{HQ_CLI_FULL_MASK}//g
+s/{REVERSE_IP_HQ_CLI}//g
 
 #25 - 255.255.255.128
 #26 - 255.255.255.192
@@ -61,39 +61,39 @@
 #30 - 255.255.255.252
 
 #============ПОДСЕТИ для OSPF============
-{NET_HQ_RTR_TO_HQ_SRV} 192.168.1.0/26
-{NET_HQ_RTR_TO_HQ_CLI} 192.168.2.0/28
-{NET_BR_RTR_TO_BR_SRV} 192.168.3.0/27
-{NET_TUNNEL_HQ_TO_BR} 172.16.0.0/30
-{NET_HQ_RTR_TO_ISP} 172.16.4.0/28
-{NET_BR_RTR_TO_ISP} 172.16.5.0/28
+s/{NET_HQ_RTR_TO_HQ_SRV}/192.168.1.0/26/g 
+s/{NET_HQ_RTR_TO_HQ_CLI}/192.168.2.0/28/g 
+s/{NET_BR_RTR_TO_BR_SRV}/192.168.3.0/27/g 
+s/{NET_TUNNEL_HQ_TO_BR}/172.16.0.0/30/g 
+s/{NET_HQ_RTR_TO_ISP}/172.16.4.0/28/g 
+s/{NET_BR_RTR_TO_ISP}/172.16.5.0/28/g 
 
 #============IP для NAT============
 #нужен первый хост адрес подсети
-{NAT1_NET_HQ_RTR_TO_HQ_SRV} 192.168.1.1
+s/{NAT1_NET_HQ_RTR_TO_HQ_SRV}/192.168.1.1/g 
 #нужен последний хост адрес подсети
-{NAT2_NET_HQ_RTR_TO_HQ_SRV} 192.168.1.254
+s/{NAT2_NET_HQ_RTR_TO_HQ_SRV}/192.168.1.254/g 
 
 #нужен первый хост адрес подсети
-{NAT1_NET_HQ_RTR_TO_HQ_CLI} 192.168.2.1
+s/{NAT1_NET_HQ_RTR_TO_HQ_CLI}/192.168.2.1/g 
 #нужен последний хост адрес подсети
-{NAT2_NET_HQ_RTR_TO_HQ_CLI} 192.168.2.254
+s/{NAT2_NET_HQ_RTR_TO_HQ_CLI}/192.168.2.254/g 
 
 #нужен первый хост адрес подсети
-{NAT1_NET_BR_RTR_TO_BR_SRV} 192.168.3.1
+s/{NAT1_NET_BR_RTR_TO_BR_SRV}/192.168.3.1/g 
 #нужен последний хост адрес подсети
-{NAT2_NET_BR_RTR_TO_BR_SRV} 192.168.3.254
+s/{NAT2_NET_BR_RTR_TO_BR_SRV}/192.168.3.254/g 
 
 #============DHCP============
 #один не занятый IP из подсети CLI, напрмиер .10
-{DHCP_CLI_IP} 192.168.2.10
+s/{DHCP_CLI_IP}/192.168.2.10/g 
 
 #============SSH===================
-
-{SSH_USERNAME} sshuser
-{SSH_USER_ID} 1010
-{SSH_USER_PASSWORD} P@ssw0rd
-{SSH_PORT} 2024
+НЕ РАБОТАЕТ. ЕСЛИ НЕ УБРАЛ, ТАК И НЕ СДЕЛАЛ
+s/{SSH_USERNAME}/sshuser/g 
+s/{SSH_USER_ID}/1010/g 
+s/{SSH_USER_PASSWORD}/P@ssw0rd/g 
+s/{SSH_PORT}/2024/g 
 
 
 
