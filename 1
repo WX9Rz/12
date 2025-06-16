@@ -1,1 +1,328 @@
-version 2
+ISP
+hostnamectl set-hostname ISP; exec bash
+
+HQ-CLI
+hostnamectl set-hostname hq-cli.au-team.irpo; exec bash
+vim /etc/net/ifaces/ens18/options
+	BOOTPROTO=static
+	TYPE=eth
+	DISABLED=no
+	CONFIG_IPv4=yes
+
+echo “IP/mask” > /etc/net/ifaces/ens18/ipv4address
+
+echo “default via IP” > /etc/net/ifaces/ens18/ipv4route
+
+systemctl restart network
+ip -c a
+ip r
+
+BR-SRV
+hostnamectl set-hostname br-srv.au-team.irpo; exec bash
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens18/options
+
+echo “IP/mask” > /etc/net/ifaces/ens18/ipv4address
+
+echo “default via IP” > /etc/net/ifaces/ens18/ipv4route
+
+systemctl restart network && ip -c a && ip route
+
+HQ-SRV
+hostnamectl set-hostname hq-srv.au-team.irpo; exec bash
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens18/options
+
+echo “IP/mask” > /etc/net/ifaces/ens18/ipv4address
+echo “default via IP” > /etc/net/ifaces/ens18/ipv4route
+
+systemctl restart network && ip -c a && ip route
+
+
+BR-RTR
+hostname br-rtr
+ip domain-name au-team.irpo
+
+int int0
+	description “to isp”
+	ip address  IP/mask
+	port te0
+	service-instance te0/int0
+	encapsulation untagged
+	int int0
+	connect port te0 service-instance te0/int0
+
+
+int int1
+	description “to br-srv”
+	ip address  IP/mask
+	port te1
+	service-instance te1/int1
+	encapsulation untagged
+	int int1
+	connect port te1 service-instance te1/int1
+
+ip route 0.0.0.0 0.0.0.0  IP
+write
+
+HQ-RTR
+hostname hq-rtr
+ip domain-name au-team.irpo
+
+int int0
+	description “to isp”
+	ip address  IP/mask
+	port te0
+	service-instance te0/int0
+	encapsulation untagged
+	int int0
+	connect port te0 service-instance te0/int0
+
+int int1
+	description “to hq-srv”
+	ip address 192.168.1.1/26
+	port te1
+	service-instance te1/int1
+	encapsulation dot1q 100
+	rewrite pop 1
+	int int1
+	connect port te1 service-instance te1/int1
+
+int int2
+	description “to hq-cli”
+	ip address 192.168.2.1/28
+	port te1
+	service-instance te1/int2
+	encapsulation dot1q 200
+	rewrite pop 1
+	int int2
+	connect port te1 service-instance te1/int2
+
+ip route 0.0.0.0 0.0.0.0  IP
+write
+ISP
+mkdir /etc/net/ifaces/ens19
+mkdir /etc/net/ifaces/ens20
+
+echo -e "BOOTPROTO=dhcp\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens18/options
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens19/options
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens20/options
+
+echo "172.16.4.1/28" > /etc/net/ifaces/ens19/ipv4address
+echo "172.16.5.1/28" > /etc/net/ifaces/ens20/ipv4address
+
+vim /etc/net/sysctl.conf
+	net.ipv4.ip_forward = 1
+
+systemctl restart network
+ip -c a
+apt-get update && apt-get install iptables -y
+
+       Глава 1.2 (ADD USERS)
+HQ-SRV
+useradd -u 1010 -G wheel sshuser 
+echo "sshuser:P@ssw0rd" | chpasswd
+
+vim /etc/sudoers
+	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
+
+echo -e “Port 2024\nAllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+
+echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
+
+BR-SRV
+useradd -u 1010 -G wheel sshuser 
+echo "sshuser:P@ssw0rd" | chpasswd
+
+vim /etc/sudoers
+	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
+
+echo -e “Port 2024\nAllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+
+echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
+
+HQ-RTR
+username net_admin
+password P@ssw0rd
+role admin
+ex
+write
+
+BR-RTR
+username net_admin
+password P@ssw0rd
+role admin
+ex
+write
+       Глава 1.3 (VLAN 999 & GRE)
+HQ-RTR
+int int3
+	description “999”
+	ip address  IP/mask
+	port te1
+	service-instance te1/int3
+	encapsulation dot1q 999
+	rewrite pop 1
+	int int3
+	connect port te1 service-instance te1/int3
+
+int tunnel.0
+	ip address  IP/mask
+	ip mtu 1400
+	ip tunnel IP IP mode gre
+	ip ospf authentication-key ecorouter
+write
+
+BR-RTR
+int tunnel.0
+	ip address  IP/mask
+	ip mtu 1400
+	ip tunnel IP IP  mode gre
+	ip ospf authentication-key ecorouter
+write
+       Глава 1.4 (OSPF)
+HQ-RTR
+router ospf 1
+	net IP/mask area 0
+	net IP/mask area 0
+	net IP/mask area 0
+	passive-interface default
+	no passive-interface tunnel.0
+	area 0 authentication
+write
+
+BR-RTR
+router ospf 1
+	net IP/mask area 0
+	net IP/mask area 0
+	passive-interface default
+	no passive-interface tunnel.0
+	area 0 authentication
+write
+
+       Глава 1.5 (IPTABLES-NAT)
+ISP
+iptables -t nat -A POSTROUTING -o ens18 -s IP/mask -j MASQUERADE
+iptables -t nat -A POSTROUTING -o ens18 -s IP/mask -j MASQUERADE
+iptables-save > /etc/sysconfig/iptables
+systemctl enable --now iptables
+
+HQ-RTR
+int int1
+	ip nat inside
+
+int int2
+	ip nat inside
+
+int int0
+	ip nat outside
+	ex
+
+ip nat pool NAT_POOL 192.168.1.1-192.168.1.254,192.168.2.1-192.168.2.254
+ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
+ex
+write
+ping 8.8.8.8 (success)
+
+BR-RTR
+int int1
+	ip nat inside
+
+int int0
+	ip nat outside
+	ex
+
+ip nat pool NAT_POOL 192.168.3.1-192.168.3.254
+ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
+ex
+write
+ping 8.8.8.8 (success)
+
+
+
+
+HQ-SRV
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+ping 8.8.8.8 (success)
+apt-get update && apt-get install dnsmasq -y
+
+BR-SRV
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+ping 8.8.8.8 (success)
+
+HQ-CLI
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+systemctl restart network
+ping 8.8.8.8 (success)
+       Глава 1.6 (DHCP)
+HQ-RTR
+ip pool cli_pool IP- IP (1  IP)
+dhcp-server 1
+	pool cli_pool 1
+	mask fullmask
+	gateway  IP
+	dns  IP
+	domain-name au-team.irpo
+	ex
+	exit
+
+int int2
+	dhcp-server 1
+	ex
+	write
+
+HQ-CLI
+rm -rf /etc/net/ifaces/ens18/ipv4route
+rm -rf /etc/net/ifaces/ens18/ipv4address
+echo -e "TYPE=eth\nBOOTPROTO=dhcp" > /etc/net/ifaces/ens18/options
+systemctl restart network
+
+ip -c a
+       Глава 1.7 (DNS)
+HQ-SRV
+systemctl enable --now dnsmasq
+systemctl is-active dnsmasq
+vim /etc/dnsmasq.conf (пишем прямо всерху)
+	no-resolv
+	domain=au.team.irpo
+	server=8.8.8.8
+	interface=*
+
+	address=/hq-rtr.au-team.irpo/ IP
+	address=/br-rtr.au-team.irpo/ IP
+	address=/hq-srv.au-team.irpo/ IP
+	address=/hq-cli.au-team.irpo/ IP
+	address=/br-srv.au-team.irpo/ IP
+
+	ptr-record=backIP.in-addr.arpa,hq-rtr.au-team.irpo
+	ptr-record=backIP.in-addr.arpa,hq-srv.au-team.irpo
+	ptr-record=backIP.in-addr.arpa,hq-cli.au-team.irpo
+
+	cname=wiki.au-team.irpo,hq-rtr.au-team.irpo
+	cname=moodle.au-team.irpo,hq-rtr.au-team.irpo
+	
+echo -e "IP\thq-rtr.au-team.irpo" >> /etc/hosts
+
+systemctctl restart dnsmasq
+
+ping google.com
+ping hq-rtr.au-team.irpo
+ping br-srv.au-team.irpo
+dig hq-rtr.au-team.irpo (ANSWER SECTION должен быть IP )
+dig wiki.au-team.irpo (wiki.au-team.irpo → hq-rtr.au-team.irpo → IP )
+
+
+HQ-CLI
+dig moodle.au-team.irpo
+dig wiki.au-team.irpo
+       Глава 1.8 (Time-Zone)
+ISP
+apt-get update && apt-get install --reinstall tzdata -y
+timedatectl set-timezone Asia/Yekaterinburg && timedatectl
+
+HQ-RTR, BR-RTR
+ntp timezone utc+5
+ex
+write
+show ntp timezone
+
+BR-SRV, HQ-SRV, HQ-CLI
+timedatectl set-timezone Asia/Yekaterinburg && timedatectl
