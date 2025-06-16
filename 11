@@ -1,0 +1,114 @@
+#-----------ISP-----------
+{ISP_TO_HQ_RTR_IP} 
+{ISP_TO_HQ_RTR_MASK} 
+
+{ISP_TO_BR_RTR_IP} 
+{ISP_TO_BR_RTR_MASK} 
+
+#-----------HQ-RTR-----------
+{HQ_RTR_TO_ISP_IP} 
+{HQ_RTR_TO_ISP_MASK} 
+
+{VLAN_TO_HQ_SRV} 100
+{HQ_RTR_TO_HQ_SRV_IP} 
+{HQ_RTR_TO_HQ_SRV_MASK} 
+#например 1.1.168.192, если на строку выше 192.168.1.1
+{REVERSE_IP_HQ_RTR}
+
+{VLAN_TO_HQ_CLI} 200
+{HQ_RTR_TO_HQ_CLI_IP} 
+{HQ_RTR_TO_HQ_CLI_MASK} 
+
+{VLAN_MANAGEMENT} 999
+{HQ_RTR_MANAGEMENT_IP} 
+{HQ_RTR_MANAGEMENT_MASK} 
+
+{HQ_RTR_GRE_IP} 172.16.0.1
+{HQ_RTR_GRE_MASK} 30
+{MTU} 1400
+
+#-----------BR-RTR-----------
+{BR_RTR_TO_ISP_IP} 
+{BR_RTR_TO_ISP_MASK} 
+
+{BR_RTR_TO_BR_SRV_IP} 
+{BR_RTR_TO_BR_SRV_MASK} 
+
+{BR_RTR_GRE_IP} 172.16.0.2
+{BR_RTR_GRE_MASK} 30
+{MTU} 1400
+
+#-----------HQ-SRV-----------
+{HQ_SRV_IP} 
+{HQ_SRV_MASK} 
+{REVERSE_IP_HQ_SRV}
+
+#-----------BR-SRV-----------
+{BR_SRV_IP} 
+{BR_SRV_MASK} 
+
+#-----------HQ-CLI-----------
+{HQ_CLI_IP} 
+{HQ_CLI_MASK} 
+{HQ_CLI_FULL_MASK} 
+{REVERSE_IP_HQ_CLI}
+
+#25 - 255.255.255.128
+#26 - 255.255.255.192
+#27 - 255.255.255.224
+#28 - 255.255.255.240
+#29 - 255.255.255.248
+#30 - 255.255.255.252
+
+#============ПОДСЕТИ для OSPF============
+{NET_HQ_RTR_TO_HQ_SRV} 192.168.1.0/26
+{NET_HQ_RTR_TO_HQ_CLI} 192.168.2.0/28
+{NET_BR_RTR_TO_BR_SRV} 192.168.3.0/27
+{NET_TUNNEL_HQ_TO_BR} 172.16.0.0/30
+{NET_HQ_RTR_TO_ISP} 172.16.4.0/28
+{NET_BR_RTR_TO_ISP} 172.16.5.0/28
+
+#============IP для NAT============
+#нужен первый хост адрес подсети
+{NAT1_NET_HQ_RTR_TO_HQ_SRV} 192.168.1.1
+#нужен последний хост адрес подсети
+{NAT2_NET_HQ_RTR_TO_HQ_SRV} 192.168.1.254
+
+#нужен первый хост адрес подсети
+{NAT1_NET_HQ_RTR_TO_HQ_CLI} 192.168.2.1
+#нужен последний хост адрес подсети
+{NAT2_NET_HQ_RTR_TO_HQ_CLI} 192.168.2.254
+
+#нужен первый хост адрес подсети
+{NAT1_NET_BR_RTR_TO_BR_SRV} 192.168.3.1
+#нужен последний хост адрес подсети
+{NAT2_NET_BR_RTR_TO_BR_SRV} 192.168.3.254
+
+#============DHCP============
+#один не занятый IP из подсети CLI, напрмиер .10
+{DHCP_CLI_IP} 192.168.2.10
+
+#============SSH===================
+
+{SSH_USERNAME} sshuser
+{SSH_USER_ID} 1010
+{SSH_USER_PASSWORD} P@ssw0rd
+{SSH_PORT} 2024
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
