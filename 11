@@ -61,12 +61,12 @@ s/{REVERSE_IP_HQ_CLI}//g
 #30 - 255.255.255.252
 
 #============ПОДСЕТИ для OSPF============
-s/{NET_HQ_RTR_TO_HQ_SRV}/192.168.1.0/26/g 
-s/{NET_HQ_RTR_TO_HQ_CLI}/192.168.2.0/28/g 
-s/{NET_BR_RTR_TO_BR_SRV}/192.168.3.0/27/g 
-s/{NET_TUNNEL_HQ_TO_BR}/172.16.0.0/30/g 
-s/{NET_HQ_RTR_TO_ISP}/172.16.4.0/28/g 
-s/{NET_BR_RTR_TO_ISP}/172.16.5.0/28/g 
+s/{NET_HQ_RTR_TO_HQ_SRV}/192.168.1.0\/26/g 
+s/{NET_HQ_RTR_TO_HQ_CLI}/192.168.2.0\/28/g 
+s/{NET_BR_RTR_TO_BR_SRV}/192.168.3.0\/27/g 
+s/{NET_TUNNEL_HQ_TO_BR}/172.16.0.0\/30/g 
+s/{NET_HQ_RTR_TO_ISP}/172.16.4.0\/28/g 
+s/{NET_BR_RTR_TO_ISP}/172.16.5.0\/28/g 
 
 #============IP для NAT============
 #нужен первый хост адрес подсети
