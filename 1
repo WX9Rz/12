@@ -161,27 +161,27 @@ write
 ================Глава 1.3 (VLAN 999 & GRE)================
 -----------HQ-RTR-----------
 int int3
-	description “999”
-	ip address  IP/mask
+	description “{VLAN_LIKE_999}”
+	ip address {HQ_RTR_MANAGEMENT_IP}/HQ_RTR_MANAGEMENT_MASK} 
 	port te1
 	service-instance te1/int3
-	encapsulation dot1q 999
+	encapsulation dot1q {VLAN_LIKE_999}
 	rewrite pop 1
 	int int3
 	connect port te1 service-instance te1/int3
 
 int tunnel.0
-	ip address  IP/mask
-	ip mtu 1400
-	ip tunnel IP IP mode gre
+	ip address  {HQ_RTR_GRE_IP}/{HQ_RTR_GRE_MASK}
+	ip mtu {MTU}
+	ip tunnel {HQ_RTR_TO_ISP_IP} {BR_RTR_TO_ISP_IP} mode gre
 	ip ospf authentication-key ecorouter
 write
 
 -----------BR-RTR-----------
 int tunnel.0
-	ip address  IP/mask
-	ip mtu 1400
-	ip tunnel IP IP  mode gre
+	ip address  {BR_RTR_GRE_IP}/{BR_RTR_GRE_MASK}
+	ip mtu {MTU}
+	ip tunnel {BR_RTR_TO_ISP_IP} {HQ_RTR_TO_ISP_IP}  mode gre
 	ip ospf authentication-key ecorouter
 write
 
@@ -190,9 +190,9 @@ write
 ================Глава 1.4 (OSPF)================
 -----------HQ-RTR-----------
 router ospf 1
-	net IP/mask area 0
-	net IP/mask area 0
-	net IP/mask area 0
+	net {NET_TUNNEL_HQ_TO_BR} area 0
+	net {NET_HQ_RTR_TO_HQ_SRV} area 0
+	net {NET_HQ_RTR_TO_HQ_CLI} area 0
 	passive-interface default
 	no passive-interface tunnel.0
 	area 0 authentication
@@ -200,8 +200,8 @@ write
 
 -----------BR-RTR-----------
 router ospf 1
-	net IP/mask area 0
-	net IP/mask area 0
+	net {NET_TUNNEL_HQ_TO_BR} area 0
+	net {NET_BR_RTR_TO_BR_SRV} area 0
 	passive-interface default
 	no passive-interface tunnel.0
 	area 0 authentication
@@ -211,8 +211,8 @@ write
 
 ================Глава 1.5 (IPTABLES-NAT)================
 -----------ISP-----------
-iptables -t nat -A POSTROUTING -o ens18 -s IP/mask -j MASQUERADE
-iptables -t nat -A POSTROUTING -o ens18 -s IP/mask -j MASQUERADE
+iptables -t nat -A POSTROUTING -o ens18 -s {NET_HQ_RTR_TO_ISP} -j MASQUERADE
+iptables -t nat -A POSTROUTING -o ens18 -s {NET_BR_RTR_TO_ISP} -j MASQUERADE
 iptables-save > /etc/sysconfig/iptables
 systemctl enable --now iptables
 
@@ -227,7 +227,7 @@ int int0
 	ip nat outside
 	ex
 
-ip nat pool NAT_POOL 192.168.1.1-192.168.1.254,192.168.2.1-192.168.2.254
+ip nat pool NAT_POOL {NAT1_NET_HQ_RTR_TO_HQ_SRV}-{NAT2_NET_HQ_RTR_TO_HQ_SRV},{NAT1_NET_HQ_RTR_TO_HQ_CLI}-{NAT2_NET_HQ_RTR_TO_HQ_CLI}
 ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
 ex
 write
@@ -241,7 +241,7 @@ int int0
 	ip nat outside
 	ex
 
-ip nat pool NAT_POOL 192.168.3.1-192.168.3.254
+ip nat pool NAT_POOL {NAT1_NET_BR_RTR_TO_BR_SRV}-{NAT2_NET_BR_RTR_TO_BR_SRV}
 ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
 ex
 write
@@ -265,12 +265,12 @@ ping 8.8.8.8 (success)
 
 ================Глава 1.6 (DHCP)================
 -----------HQ-RTR-----------
-ip pool cli_pool IP- IP (1  IP)
+ip pool cli_pool {DHCP_CLI_IP}-{DHCP_CLI_IP}
 dhcp-server 1
 	pool cli_pool 1
-	mask fullmask
-	gateway  IP
-	dns  IP
+	mask {HQ_CLI_FULL_MASK}
+	gateway {HQ_RTR_TO_HQ_CLI_IP}
+	dns {HQ_SRV_IP}P
 	domain-name au-team.irpo
 	ex
 	exit
@@ -300,20 +300,20 @@ vim /etc/dnsmasq.conf (пишем прямо всерху)
 	server=8.8.8.8
 	interface=*
 
-	address=/hq-rtr.au-team.irpo/ IP
-	address=/br-rtr.au-team.irpo/ IP
-	address=/hq-srv.au-team.irpo/ IP
-	address=/hq-cli.au-team.irpo/ IP
-	address=/br-srv.au-team.irpo/ IP
+	address=/hq-rtr.au-team.irpo/{HQ_RTR_TO_HQ_SRV_IP}
+	address=/br-rtr.au-team.irpo/{BR_RTR_TO_BR_SRV_IP}
+	address=/hq-srv.au-team.irpo/{HQ_SRV_IP} 
+	address=/hq-cli.au-team.irpo/{HQ_CLI_IP}
+	address=/br-srv.au-team.irpo/{BR_SRV_IP}
 
-	ptr-record=backIP.in-addr.arpa,hq-rtr.au-team.irpo
-	ptr-record=backIP.in-addr.arpa,hq-srv.au-team.irpo
-	ptr-record=backIP.in-addr.arpa,hq-cli.au-team.irpo
+	ptr-record={REVERSE_IP_HQ_RTR}.in-addr.arpa,hq-rtr.au-team.irpo
+	ptr-record={REVERSE_IP_HQ_SRV}.in-addr.arpa,hq-srv.au-team.irpo
+	ptr-record={REVERSE_IP_HQ_CLI}.in-addr.arpa,hq-cli.au-team.irpo
 
 	cname=wiki.au-team.irpo,hq-rtr.au-team.irpo
 	cname=moodle.au-team.irpo,hq-rtr.au-team.irpo
 	
-echo -e "IP\thq-rtr.au-team.irpo" >> /etc/hosts
+echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.au-team.irpo" >> /etc/hosts
 
 systemctctl restart dnsmasq
 
