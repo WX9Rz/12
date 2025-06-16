@@ -89,7 +89,7 @@ s/{NAT2_NET_BR_RTR_TO_BR_SRV}/192.168.3.254/g
 s/{DHCP_CLI_IP}/192.168.2.10/g 
 
 #============SSH===================
-НЕ РАБОТАЕТ. ЕСЛИ НЕ УБРАЛ, ТАК И НЕ СДЕЛАЛ
+#НЕ РАБОТАЕТ. ЕСЛИ НЕ УБРАЛ, ТАК И НЕ СДЕЛАЛ
 s/{SSH_USERNAME}/sshuser/g 
 s/{SSH_USER_ID}/1010/g 
 s/{SSH_USER_PASSWORD}/P@ssw0rd/g 
