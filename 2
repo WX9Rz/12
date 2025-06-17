@@ -9,7 +9,7 @@
 -----------BR-SRV-----------
 apt-get update && apt-get install -y task-samba-dc && \
 apt-repo add rpm http://altrepo.ru/local-p10 noarch local-p10 && apt-get update && \
-apt-get install -y sudo-samba-schema  chrony ansible docker-compose docker-engine && \
+apt-get install -y sudo-samba-schema chrony ansible docker-compose docker-engine && \
 curl -L https://bit.ly/3C1nEYz -o /root/users.zip && unzip /root/users.zip && mv /root/Users.csv /opt/Users.csv && curl -L https://tinyurl.com/y94wnsun -o /root/import.sh && chmod +x /root/import.sh && \
 systemctl enable --now docker && \
 docker pull mediawiki && \
