@@ -8,42 +8,35 @@ apt-update && apt-get install -y curl
 
 -----------ISP-----------
 hostnamectl set-hostname ISP; exec bash
-apt-get update && apt-get install --reinstall tzdata -y && apt-get install iptables -y
+
+apt-get update && apt-get install --reinstall tzdata -y && \
+apt-get install iptables -y && \
 timedatectl set-timezone Asia/Yekaterinburg && timedatectl
 
 -----------HQ-CLI-----------
 hostnamectl set-hostname hq-cli.{DOMAIN}; exec bash
-vim /etc/net/ifaces/{HQ_CLI_ENS}/options
-	BOOTPROTO=static
-	TYPE=eth
-	DISABLED=no
-	CONFIG_IPv4=yes
 
-echo "{HQ_CLI_IP}/{HQ_CLI_MASK}" > /etc/net/ifaces/{HQ_CLI_ENS}/ipv4address
-
-echo "default via {HQ_RTR_TO_HQ_CLI_IP}" > /etc/net/ifaces/{HQ_CLI_ENS}/ipv4route
-
-systemctl restart network
-ip -c a
+echo -e "BOOTPROTO=static\nTYPE=eth\nDISABLED=no\nCONFIG_IPV4=yes" > "/etc/net/ifaces/{HQ_CLI_ENS}/options" && \
+echo "{HQ_CLI_IP}/{HQ_CLI_MASK}" > /etc/net/ifaces/{HQ_CLI_ENS}/ipv4address && \
+echo "default via {HQ_RTR_TO_HQ_CLI_IP}" > /etc/net/ifaces/{HQ_CLI_ENS}/ipv4route && \
+systemctl restart network && \
+ip -c a && \
 ip r
 
 -----------BR-SRV-----------
 hostnamectl set-hostname br-srv.{DOMAIN}; exec bash
-echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{BR_SRV_ENS}/options
 
-echo "{BR_SRV_IP}/{BR_SRV_MASK}" > /etc/net/ifaces/{BR_SRV_ENS}/ipv4address
-
-echo "default via {BR_RTR_TO_BR_SRV_IP}" > /etc/net/ifaces/{BR_SRV_ENS}/ipv4route
-
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{BR_SRV_ENS}/options && \
+echo "{BR_SRV_IP}/{BR_SRV_MASK}" > /etc/net/ifaces/{BR_SRV_ENS}/ipv4address && \
+echo "default via {BR_RTR_TO_BR_SRV_IP}" > /etc/net/ifaces/{BR_SRV_ENS}/ipv4route && \
 systemctl restart network && ip -c a && ip route
 
 -----------HQ-SRV-----------
 hostnamectl set-hostname hq-srv.{DOMAIN}; exec bash
-echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{HQ_SRV_ENS}/options
 
-echo "{HQ_SRV_IP}/{HQ_SRV_MASK}" > /etc/net/ifaces/{HQ_SRV_ENS}/ipv4address
-echo "default via {HQ_RTR_TO_HQ_SRV_IP}" > /etc/net/ifaces/{HQ_SRV_ENS}/ipv4route
-
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{HQ_SRV_ENS}/options && \
+echo "{HQ_SRV_IP}/{HQ_SRV_MASK}" > /etc/net/ifaces/{HQ_SRV_ENS}/ipv4address && \
+echo "default via {HQ_RTR_TO_HQ_SRV_IP}" > /etc/net/ifaces/{HQ_SRV_ENS}/ipv4route && \
 systemctl restart network && ip -c a && ip route
 
 
@@ -52,23 +45,23 @@ hostname br-rtr
 ip domain-name {DOMAIN}
 
 int int0
-	description "to isp"
-	ip address {BR_RTR_TO_ISP_IP}/{BR_RTR_TO_ISP_MASK}
-	port te0
-	service-instance te0/int0
-	encapsulation untagged
-	int int0
-	connect port te0 service-instance te0/int0
+description "to isp"
+ip address {BR_RTR_TO_ISP_IP}/{BR_RTR_TO_ISP_MASK}
+port te0
+service-instance te0/int0
+encapsulation untagged
+int int0
+connect port te0 service-instance te0/int0
 
 
 int int1
-	description "to br-srv"
-	ip address {BR_RTR_TO_BR_SRV_IP}/{BR_RTR_TO_BR_SRV_MASK}
-	port te1
-	service-instance te1/int1
-	encapsulation untagged
-	int int1
-	connect port te1 service-instance te1/int1
+description "to br-srv"
+ip address {BR_RTR_TO_BR_SRV_IP}/{BR_RTR_TO_BR_SRV_MASK}
+port te1
+service-instance te1/int1
+encapsulation untagged
+int int1
+connect port te1 service-instance te1/int1
 
 ip route 0.0.0.0 0.0.0.0 {ISP_TO_BR_RTR_IP}
 write
@@ -78,78 +71,65 @@ hostname hq-rtr
 ip domain-name {DOMAIN}
 
 int int0
-	description "to isp"
-	ip address  {HQ_RTR_TO_ISP_IP}/{HQ_RTR_TO_ISP_MASK}
-	port te0
-	service-instance te0/int0
-	encapsulation untagged
-	int int0
-	connect port te0 service-instance te0/int0
+description "to isp"
+ip address  {HQ_RTR_TO_ISP_IP}/{HQ_RTR_TO_ISP_MASK}
+port te0
+service-instance te0/int0
+encapsulation untagged
+int int0
+connect port te0 service-instance te0/int0
 
 int int1
-	description "to hq-srv"
-	ip address {HQ_RTR_TO_HQ_SRV_IP}/{HQ_RTR_TO_HQ_SRV_MASK}
-	port te1
-	service-instance te1/int1
-	encapsulation dot1q {VLAN_TO_HQ_SRV}
-	rewrite pop 1
-	int int1
-	connect port te1 service-instance te1/int1
+description "to hq-srv"
+ip address {HQ_RTR_TO_HQ_SRV_IP}/{HQ_RTR_TO_HQ_SRV_MASK}
+port te1
+service-instance te1/int1
+encapsulation dot1q {VLAN_TO_HQ_SRV}
+rewrite pop 1
+int int1
+connect port te1 service-instance te1/int1
 
 int int2
-	description "to hq-cli"
-	ip address {HQ_RTR_TO_HQ_CLI_IP}/{HQ_RTR_TO_HQ_CLI_MASK}
-	port te1
-	service-instance te1/int2
-	encapsulation dot1q {VLAN_TO_HQ_CLI}
-	rewrite pop 1
-	int int2
-	connect port te1 service-instance te1/int2
+description "to hq-cli"
+ip address {HQ_RTR_TO_HQ_CLI_IP}/{HQ_RTR_TO_HQ_CLI_MASK}
+port te1
+service-instance te1/int2
+encapsulation dot1q {VLAN_TO_HQ_CLI}
+rewrite pop 1
+int int2
+connect port te1 service-instance te1/int2
 
 ip route 0.0.0.0 0.0.0.0 {ISP_TO_HQ_RTR_IP}
 write
 
 -----------ISP-----------
-mkdir /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS}
-mkdir /etc/net/ifaces/{ISP_TO_BR_RTR_ENS}
-
-echo -e "BOOTPROTO=dhcp\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_INTERNET}/options
-echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS}/options
-echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_BR_RTR_ENS}/options
-
-echo "{ISP_TO_HQ_RTR_IP}/{ISP_TO_HQ_RTR_MASK}" > /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS}/ipv4address
-echo "{ISP_TO_BR_RTR_IP}/{ISP_TO_BR_RTR_MASK}" > /etc/net/ifaces/{ISP_TO_BR_RTR_ENS}/ipv4address
-
-vim /etc/net/sysctl.conf
-	net.ipv4.ip_forward = 1
-
-systemctl restart network
+mkdir /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS} && \
+mkdir /etc/net/ifaces/{ISP_TO_BR_RTR_ENS} && \
+echo -e "BOOTPROTO=dhcp\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_INTERNET}/options && \
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS}/options && \
+echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/{ISP_TO_BR_RTR_ENS}/options && \
+echo "{ISP_TO_HQ_RTR_IP}/{ISP_TO_HQ_RTR_MASK}" > /etc/net/ifaces/{ISP_TO_HQ_RTR_ENS}/ipv4address && \
+echo "{ISP_TO_BR_RTR_IP}/{ISP_TO_BR_RTR_MASK}" > /etc/net/ifaces/{ISP_TO_BR_RTR_ENS}/ipv4address && \
+sed -i 's/^net\.ipv4\.ip_forward *= *0/net.ipv4.ip_forward = 1/' /etc/net/sysctl.conf && \
+systemctl restart network && \
 ip -c a
 
 
 
 ===============Глава 1.2 (ADD USERS)===================
 -----------HQ-SRV-----------
-useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} 
-echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
-
-vim /etc/sudoers
-	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
-
-echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config
-
+useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} && \
+echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd && \
+sed -i 's/^# *\(WHEEL_USERS .*NOPASSWD: ALL\)/\1/' /etc/sudoers && \
+echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config && \
 echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------BR-SRV-----------
-useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} 
-echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
-
-vim /etc/sudoers
-	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
-
-echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config
-
-echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd
+useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} && \
+echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd && \
+sed -i 's/^# *\(WHEEL_USERS .*NOPASSWD: ALL\)/\1/' /etc/sudoers && \
+echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config && \
+echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd && \
 
 -----------HQ-RTR-----------
 username {SSH_RTR_USERNAME}
@@ -170,28 +150,28 @@ write
 ================Глава 1.3 (VLAN 999 & GRE)================
 -----------HQ-RTR-----------
 int int3
-	description "{VLAN_LIKE_999}"
-	ip address {HQ_RTR_MANAGEMENT_IP}/HQ_RTR_MANAGEMENT_MASK} 
-	port te1
-	service-instance te1/int3
-	encapsulation dot1q {VLAN_LIKE_999}
-	rewrite pop 1
-	int int3
-	connect port te1 service-instance te1/int3
+description "{VLAN_LIKE_999}"
+ip address {HQ_RTR_MANAGEMENT_IP}/HQ_RTR_MANAGEMENT_MASK} 
+port te1
+service-instance te1/int3
+encapsulation dot1q {VLAN_LIKE_999}
+rewrite pop 1
+int int3
+connect port te1 service-instance te1/int3
 
 int tunnel.0
-	ip address  {HQ_RTR_GRE_IP}/{HQ_RTR_GRE_MASK}
-	ip mtu {MTU}
-	ip tunnel {HQ_RTR_TO_ISP_IP} {BR_RTR_TO_ISP_IP} mode gre
-	ip ospf authentication-key ecorouter
+ip address  {HQ_RTR_GRE_IP}/{HQ_RTR_GRE_MASK}
+ip mtu {MTU}
+ip tunnel {HQ_RTR_TO_ISP_IP} {BR_RTR_TO_ISP_IP} mode gre
+ip ospf authentication-key ecorouter
 write
 
 -----------BR-RTR-----------
 int tunnel.0
-	ip address  {BR_RTR_GRE_IP}/{BR_RTR_GRE_MASK}
-	ip mtu {MTU}
-	ip tunnel {BR_RTR_TO_ISP_IP} {HQ_RTR_TO_ISP_IP}  mode gre
-	ip ospf authentication-key ecorouter
+ip address  {BR_RTR_GRE_IP}/{BR_RTR_GRE_MASK}
+ip mtu {MTU}
+ip tunnel {BR_RTR_TO_ISP_IP} {HQ_RTR_TO_ISP_IP}  mode gre
+ip ospf authentication-key ecorouter
 write
 
 
@@ -199,43 +179,40 @@ write
 ================Глава 1.4 (OSPF)================
 -----------HQ-RTR-----------
 router ospf 1
-	net {NET_TUNNEL_HQ_TO_BR} area 0
-	net {NET_HQ_RTR_TO_HQ_SRV} area 0
-	net {NET_HQ_RTR_TO_HQ_CLI} area 0
-	passive-interface default
-	no passive-interface tunnel.0
-	area 0 authentication
+net {NET_TUNNEL_HQ_TO_BR} area 0
+net {NET_HQ_RTR_TO_HQ_SRV} area 0
+net {NET_HQ_RTR_TO_HQ_CLI} area 0
+passive-interface default
+no passive-interface tunnel.0
+area 0 authentication
 write
 
 -----------BR-RTR-----------
 router ospf 1
-	net {NET_TUNNEL_HQ_TO_BR} area 0
-	net {NET_BR_RTR_TO_BR_SRV} area 0
-	passive-interface default
-	no passive-interface tunnel.0
-	area 0 authentication
+net {NET_TUNNEL_HQ_TO_BR} area 0
+net {NET_BR_RTR_TO_BR_SRV} area 0
+passive-interface default
+no passive-interface tunnel.0
+area 0 authentication
 write
 
 
 
 ================Глава 1.5 (IPTABLES-NAT)================
 -----------ISP-----------
-iptables -t nat -A POSTROUTING -o {ISP_TO_INTERNET} -s {NET_HQ_RTR_TO_ISP} -j MASQUERADE
-iptables -t nat -A POSTROUTING -o {ISP_TO_INTERNET} -s {NET_BR_RTR_TO_ISP} -j MASQUERADE
-iptables-save > /etc/sysconfig/iptables
+iptables -t nat -A POSTROUTING -o {ISP_TO_INTERNET} -s {NET_HQ_RTR_TO_ISP} -j MASQUERADE && \
+iptables -t nat -A POSTROUTING -o {ISP_TO_INTERNET} -s {NET_BR_RTR_TO_ISP} -j MASQUERADE && \
+iptables-save > /etc/sysconfig/iptables && \
 systemctl enable --now iptables
 
 -----------HQ-RTR-----------
 int int1
-	ip nat inside
-
+ip nat inside
 int int2
-	ip nat inside
-
+ip nat inside
 int int0
-	ip nat outside
-	ex
-
+ip nat outside
+ex
 ip nat pool NAT_POOL {NAT1_NET_HQ_RTR_TO_HQ_SRV}-{NAT2_NET_HQ_RTR_TO_HQ_SRV},{NAT1_NET_HQ_RTR_TO_HQ_CLI}-{NAT2_NET_HQ_RTR_TO_HQ_CLI}
 ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
 ex
@@ -244,12 +221,10 @@ ping 8.8.8.8 (success)
 
 -----------BR-RTR-----------
 int int1
-	ip nat inside
-
+ip nat inside
 int int0
-	ip nat outside
-	ex
-
+ip nat outside
+ex
 ip nat pool NAT_POOL {NAT1_NET_BR_RTR_TO_BR_SRV}-{NAT2_NET_BR_RTR_TO_BR_SRV}
 ip nat source dynamic inside-to-outside pool NAT_POOL overload interface int0
 ex
@@ -257,17 +232,17 @@ write
 ping 8.8.8.8 (success)
 
 -----------HQ-SRV-----------
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
-ping 8.8.8.8 (success)
+echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
+ping 8.8.8.8 (success) && \
 apt-get update && apt-get install dnsmasq -y
 
 -----------BR-SRV-----------
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
 ping 8.8.8.8 (success)
 
 -----------HQ-CLI-----------
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
-systemctl restart network
+echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
+systemctl restart network && \
 ping 8.8.8.8 (success)
 
 
@@ -276,54 +251,52 @@ ping 8.8.8.8 (success)
 -----------HQ-RTR-----------
 ip pool cli_pool {DHCP_CLI_IP}-{DHCP_CLI_IP}
 dhcp-server 1
-	pool cli_pool 1
-	mask {HQ_CLI_FULL_MASK}
-	gateway {HQ_RTR_TO_HQ_CLI_IP}
-	dns {HQ_SRV_IP}P
-	domain-name {DOMAIN}
-	ex
-	exit
-
+pool cli_pool 1
+mask {HQ_CLI_FULL_MASK}
+gateway {HQ_RTR_TO_HQ_CLI_IP}
+dns {HQ_SRV_IP}P
+domain-name {DOMAIN}
+ex
+exit
 int int2
-	dhcp-server 1
-	ex
-	write
+dhcp-server 1
+ex
+write
 
 -----------HQ-CLI-----------
-rm -rf /etc/net/ifaces/{HQ_CLI_ENS}/ipv4route
-rm -rf /etc/net/ifaces/{HQ_CLI_ENS}/ipv4address
-echo -e "TYPE=eth\nBOOTPROTO=dhcp" > /etc/net/ifaces/{HQ_CLI_ENS}/options
-systemctl restart network
-
+rm -rf /etc/net/ifaces/{HQ_CLI_ENS}/ipv4route && \
+rm -rf /etc/net/ifaces/{HQ_CLI_ENS}/ipv4address && \
+echo -e "TYPE=eth\nBOOTPROTO=dhcp" > /etc/net/ifaces/{HQ_CLI_ENS}/options && \
+systemctl restart network && \
 ip -c a
 
 
 
 ================Глава 1.7 (DNS)================
 -----------HQ-SRV-----------
-systemctl enable --now dnsmasq
-systemctl is-active dnsmasq
-vim /etc/dnsmasq.conf (пишем прямо всерху)
-	no-resolv
-	domain=au.team.irpo
-	server=8.8.8.8
-	interface=*
+systemctl enable --now dnsmasq && \
+systemctl is-active dnsmasq && \
+sudo tee -a /etc/dnsmasq.conf >> /dev/null << EOF
+no-resolv
+domain=au.team.irpo
+server=8.8.8.8
+interface=*
 
-	address=/hq-rtr.{DOMAIN}/{HQ_RTR_TO_HQ_SRV_IP}
-	address=/br-rtr.{DOMAIN}/{BR_RTR_TO_BR_SRV_IP}
-	address=/hq-srv.{DOMAIN}/{HQ_SRV_IP} 
-	address=/hq-cli.{DOMAIN}/{HQ_CLI_IP}
-	address=/br-srv.{DOMAIN}/{BR_SRV_IP}
+address=/hq-rtr.{DOMAIN}/{HQ_RTR_TO_HQ_SRV_IP}
+address=/br-rtr.{DOMAIN}/{BR_RTR_TO_BR_SRV_IP}
+address=/hq-srv.{DOMAIN}/{HQ_SRV_IP} 
+address=/hq-cli.{DOMAIN}/{HQ_CLI_IP}
+address=/br-srv.{DOMAIN}/{BR_SRV_IP}
 
-	ptr-record={REVERSE_IP_HQ_RTR}.in-addr.arpa,hq-rtr.{DOMAIN}
-	ptr-record={REVERSE_IP_HQ_SRV}.in-addr.arpa,hq-srv.{DOMAIN}
-	ptr-record={REVERSE_IP_HQ_CLI}.in-addr.arpa,hq-cli.{DOMAIN}
+ptr-record={REVERSE_IP_HQ_RTR}.in-addr.arpa,hq-rtr.{DOMAIN}
+ptr-record={REVERSE_IP_HQ_SRV}.in-addr.arpa,hq-srv.{DOMAIN}
+ptr-record={REVERSE_IP_HQ_CLI}.in-addr.arpa,hq-cli.{DOMAIN}
 
-	cname=wiki.{DOMAIN},hq-rtr.{DOMAIN}
-	cname=moodle.{DOMAIN},hq-rtr.{DOMAIN}
-	
-echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.{DOMAIN}" >> /etc/hosts
+cname=wiki.{DOMAIN},hq-rtr.{DOMAIN}
+cname=moodle.{DOMAIN},hq-rtr.{DOMAIN}
+EOF
 
+echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.{DOMAIN}" >> /etc/hosts && \
 systemctctl restart dnsmasq
 
 ping google.com
