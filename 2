@@ -1,4 +1,13 @@
-BR-SRV
+Дополнительно для упрощения жизни (но вы должны знать что вы делаете):
+apt-update && apt-get install -y curl
+1. curl -L https://raw.githubusercontent.com/WX9Rz/12/refs/heads/main/22 -o /root/22
+2. подставляете значения под ваш вариант в "vim /root/22";
+3. sed -f 22 2 > 0    #подменит все переменные
+4. less 0
+5. Получаете готовые команды, с уже подставленными IP и прочим.
+
+
+-----------BR-SRV-----------
 apt-get update && apt-get install -y task-samba-dc && \
 apt-repo add rpm http://altrepo.ru/local-p10 noarch local-p10 && apt-get update && \
 apt-get install -y sudo-samba-schema  chrony ansible docker-compose docker-engine && \
@@ -8,25 +17,27 @@ docker pull mediawiki && \
 docker pull mariadb && \
 systemctl status docker
 
-HQ-CLI
+-----------HQ-CLI-----------
 apt-get update && apt-get install -y admc sudo libsss_sudo nfs-clients chrony nginx  yandex-browser-stable
 HQ-SRV
 apt-get update && apt-get install -y fdisk nfs-server chrony apache2 php8.2 apache2-mod_php8.2 mariadb-server php8.2-opcache php8.2-curl php8.2-gd php8.2-intl php8.2-mysqli php8.2-xml php8.2-xmlrpc php8.2-ldap php8.2-zip php8.2-soap php8.2-mbstring php8.2-json php8.2-xmlreader php8.2-fileinfo php8.2-sodium && systemctl enable --now httpd2 mysqld && \
 curl -L https://github.com/moodle/moodle/archive/refs/tags/v4.5.0.zip -o /root/moodle.zip
-ISP
-apt-get update && apt-get install  -y chrony
+
+-----------ISP-----------
+apt-get update && apt-get install -y chrony
+
 
 2-1. Настройте доменный контроллер Samba на машине BR-SRV
-BR-SRV
+-----------BR-SRV-----------
 rm -f /etc/samba/smb.conf && \
-echo -e '192.168.3.10\tbr-srv.au-team.irpo' >> /etc/hosts
+echo -e '{BR_SRV_IP}\tbr-srv.au-team.irpo' >> /etc/hosts
 
-HQ-SRV
-echo 'server=/au-team.irpo/192.168.3.10' >> /etc/dnsmasq.conf && \
+-----------HQ-SRV-----------
+echo 'server=/au-team.irpo/{BR_SRV_IP}' >> /etc/dnsmasq.conf && \
 systemctl restart dnsmasq
 
-BR-SRV
-echo -e "AU-TEAM.IRPO\nAU-TEAM\ndc\nSAMBA_INTERNAL\n192.168.1.10\nP@ssw0rd\nP@ssw0rd" | samba-tool domain provision
+-----------BR-SRV-----------
+echo -e "AU-TEAM.IRPO\nAU-TEAM\ndc\nSAMBA_INTERNAL\n{HQ_SRV_IP}\nP@ssw0rd\nP@ssw0rd" | samba-tool domain provision
 
 mv -f /var/lib/samba/private/krb5.conf /etc/krb5.conf && \
 systemctl enable --now samba && \
@@ -36,15 +47,22 @@ for user in user1.hq user2.hq user3.hq user4.hq user5.hq; do \
 done && \
 samba-tool group add hq && \
 samba-tool group addmembers hq user1.hq,user2.hq,user3.hq,user4.hq,user5.hq
+#################################################
+#IF SCRIPT NOT WORKS:
+#samba-tool user add user5.hq P@ssw0rd
+#samba-tool group add hq
+#samba-tool group addmembers hq
+#user1.hq,user2.hq,user3.hq,user4.hq,user5.hq
+#################################################
 
-HQ-CLI
+-----------HQ-CLI-----------
 Menu->acc->Authentication
 Active Directory Domain
 Workgroup: AU-TEAM
 Administrator
 P@ssw0rd
 
-BR-SRV
+-----------BR-SRV-----------
 sudo-schema-apply
 yes
 Administrator
@@ -57,7 +75,7 @@ sudoCommand : /bin/cat
 sudoUser : %hq
 /root/import.sh
 
-HQ-CLI (в графическом интерфейсе)
+-----------HQ-CLI (в графическом интерфейсе)-----------
 kinit administrator
 P@ssw0rd
 admc
@@ -82,10 +100,8 @@ sudo -l -U user1.hq
 sudo cat /etc/passwd | sudo grep root && sudo id root
 
 
-
-
 2-2. Сконфигурируйте файловое хранилище
-HQ-SRV
+-----------HQ-SRV-----------
 lsblk && \
 mdadm --create /dev/md0 --level=5 --raid-devices=3 /dev/sd[b-d] && \
 mdadm --detail --scan --verbose > /etc/mdadm.conf && \
@@ -100,17 +116,16 @@ echo '/raid5/nfs 192.168.2.0/28(rw,sync,no_subtree_check)' >> /etc/exports && \
 exportfs -a && exportfs -v && \
 systemctl enable nfs && systemctl restart nfs
 
-HQ-CLI
+-----------HQ-CLI-----------
 mkdir -p /mnt/nfs && \
-echo '192.168.1.10:/raid5/nfs /mnt/nfs nfs intr,soft,_netdev,x-systemd.automount 0 0' >> /etc/fstab && \
+echo '{HQ_SRV_IP}:/raid5/nfs /mnt/nfs nfs intr,soft,_netdev,x-systemd.automount 0 0' >> /etc/fstab && \
 mount -a && \
 mount -v && \
 touch /mnt/nfs/test
 
 
-
 3. Настройте службу сетевого времени на базе сервиса chrony
-ISP
+-----------ISP-----------
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
@@ -123,30 +138,30 @@ sleep 2 && \
 chronyc sources && \
 chronyc tracking | grep Stratum
 
-HQ-RTR
+-----------HQ-RTR-----------
 en
 conf t
-ntp server 172.16.4.1
+ntp server {ISP_TO_HQ_RTR_IP}
 ntp timezone utc+5
 exit
 show ntp status
 write
 
-BR-RTR
+-----------BR-RTR-----------
 en
 conf t
-ntp server 172.16.5.1
+ntp server {ISP_TO_BR_RTR_IP}
 ntp timezone utc+5
 exit
 show ntp status
 write
 
-BR-SRV
+-----------BR-SRV-----------
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
        -e 's:^ntsdumpdir:#ntsdumpdir:' \
-       -e '/^driftfile/a server 172.16.5.1 iburst prefer' \
+       -e '/^driftfile/a server {ISP_TO_BR_RTR_IP} iburst prefer' \
        /etc/chrony.conf && \
 systemctl enable --now chronyd && \
 systemctl restart chronyd && \
@@ -154,12 +169,12 @@ sleep 2 && \
 chronyc sources
 
 
-HQ-SRV
+-----------HQ-SRV-----------
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
        -e 's:^ntsdumpdir:#ntsdumpdir:' \
-       -e '/^driftfile/a server 172.16.4.1 iburst prefer' \
+       -e '/^driftfile/a server {ISP_TO_HQ_RTR_IP} iburst prefer' \
        /etc/chrony.conf && \
 systemctl enable --now chronyd && \
 systemctl restart chronyd && \
@@ -167,11 +182,11 @@ sleep 2 && \
 chronyc sources
 
 
-HQ-CLI
+-----------HQ-CLI-----------
 sed -i -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
        -e 's:^ntsdumpdir:#ntsdumpdir:' \
-       -e '/^driftfile/a server 172.16.4.1 iburst prefer' \
+       -e '/^driftfile/a server {ISP_TO_HQ_RTR_IP} iburst prefer' \
        /etc/chrony.conf && \
 systemctl enable --now chronyd && \
 systemctl restart chronyd && \
@@ -181,11 +196,11 @@ chronyc sources
 
 
 4. Сконфигурируйте ansible на сервере BR-SRV
-BR-SRV
+-----------BR-SRV-----------
 cat > /etc/ansible/hosts << 'EOF'
 [VMs]
-HQ-SRV ansible_host=192.168.1.10 ansible_user=sshuser ansible_port=2024
-HQ-CLI ansible_host=192.168.2.10 ansible_user=sshuser ansible_port=2024
+HQ-SRV ansible_host={HQ_SRV_IP} ansible_user={SSH_USERNAME} ansible_port={SSH_PORT}
+HQ-CLI ansible_host={HQ_CLI_IP} ansible_user={SSH_USERNAME} ansible_port={SSH_PORT}
 HQ-RTR ansible_host=192.168.1.1 ansible_user=net_admin ansible_password=P@ssw0rd ansible_connection=network_cli ansible_network_os=ios
 BR-RTR ansible_host=192.168.1.1 ansible_user=net_admin ansible_password=P@ssw0rd ansible_connection=network_cli ansible_network_os=ios
 EOF
@@ -193,38 +208,38 @@ EOF
 sed -i '/^\[defaults\]/a ansible_python_interpreter=/usr/bin/python3\ninterpreter_python=auto_silent\nansible_host_key_checking=false' /etc/ansible/ansible.cfg
 
 
-HQ-CLI
-useradd -u 1010 sshuser && \
-passwd sshuser && \
-gpasswd -a sshuser wheel && \
+-----------HQ-CLI-----------
+useradd -u {SSH_USER_ID} {SSH_USERNAME} && \
+passwd {SSH_USERNAME} && \
+gpasswd -a {SSH_USERNAME} wheel && \
 sed -i 's/^# \(wheel\s*ALL=(ALL:ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers && \
-sed -i 's/^#Port .*/Port 2024/' /etc/openssh/sshd_config && \
-sed -i '/^Port /a AllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
+sed -i 's/^#Port .*/Port {SSH_PORT}/' /etc/openssh/sshd_config && \
+sed -i '/^Port /a AllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
 echo "Authorized access only" > /etc/openssh/banner && \
 systemctl restart sshd
 
 
-HQ-SRV
-useradd -u 1010 sshuser
+-----------HQ-SRV-----------
+useradd -u {SSH_USER_ID} {SSH_USERNAME}
 
-passwd sshuser && \
-gpasswd -a sshuser wheel && \
+passwd {SSH_USERNAME} && \
+gpasswd -a {SSH_USERNAME} wheel && \
 sed -i 's/^# \(wheel\s*ALL=(ALL:ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers && \
-sed -i 's/^#Port .*/Port 2024/' /etc/openssh/sshd_config && \
-sed -i '/^Port /a AllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
+sed -i 's/^#Port .*/Port {SSH_PORT}/' /etc/openssh/sshd_config && \
+sed -i '/^Port /a AllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
 echo "Authorized access only" > /etc/openssh/banner && \
 systemctl restart sshd
 
-BR-SRV
+-----------BR-SRV-----------
 ssh-keygen -t rsa && \
-ssh-copy-id -p 2024 sshuser@192.168.1.10 && \
-ssh-copy-id -p 2024 sshuser@192.168.2.10 && \
+ssh-copy-id -p {SSH_PORT} {SSH_USERNAME}@{HQ_SRV_IP} && \
+ssh-copy-id -p {SSH_PORT} {SSH_USERNAME}@{HQ_CLI_IP} && \
 ansible all -m ping
 
 
 
 5. Развертывание приложений в Docker на сервере BR-SRV.
-BR-SRV
+-----------BR-SRV-----------
 cat > /root/wiki.yml << EOF
 services:
  mariadb:
@@ -255,11 +270,11 @@ EOF
 
 docker compose -f /root/wiki.yml up -d
 
-HQ-CLI
+-----------HQ-CLI-----------
 systemctl restart network
 
 в GUI>
-FireFox > http://192.168.3.10:8080
+FireFox > http://{BR_SRV_IP}:8080
 Setup MediaWiki
 Язык - Русский, далее
 далее
@@ -277,58 +292,55 @@ Setup MediaWiki
 Далее
 скачался файл (сам)
 
-BR_SRV
-useradd -u 1010 sshuser
+-----------BR_SRV-----------
+useradd -u {SSH_USER_ID} {SSH_USERNAME}
 
-passwd sshuser && \
-gpasswd -a sshuser wheel && \
+passwd {SSH_USERNAME} && \
+gpasswd -a {SSH_USERNAME} wheel && \
 sed -i 's/^# \(wheel\s*ALL=(ALL:ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers && \
-sed -i 's/^#Port .*/Port 2024/' /etc/openssh/sshd_config && \
-sed -i '/^Port /a AllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
+sed -i 's/^#Port .*/Port {SSH_PORT}/' /etc/openssh/sshd_config && \
+sed -i '/^Port /a AllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner' /etc/openssh/sshd_config && \
 echo "Authorized access only" > /etc/openssh/banner && \
 systemctl restart sshd
 
-HQ-CLI
-scp -P 2024 /home/user/Downloads/LocalSettings.php sshuser@192.168.3.10:/home/sshuser/
+-----------HQ-CLI-----------
+scp -P {SSH_PORT} /home/user/Downloads/LocalSettings.php {SSH_USERNAME}@{BR_SRV_IP}:/home/{SSH_USERNAME}/
 
 
-
-BR-SRV
+-----------BR-SRV-----------
 rm -f /root/LocalSettings.php && \
 mkdir -p /root/mediawiki && \
-mv /home/sshuser/LocalSettings.php /root/mediawiki/ && \
+mv /home/{SSH_USERNAME}/LocalSettings.php /root/mediawiki/ && \
 sed -i 's/^[[:space:]]*#volumes:/  volumes:/' /root/wiki.yml && \
 docker compose -f /root/wiki.yml up -d && \
 systemctl restart docker
 
 
-
 6. На маршрутизаторах сконфигурируйте статическую трансляцию портов
-
-BR-RTR
+-----------BR-RTR-----------
 en
 conf t
-ip nat source static tcp 192.168.3.10 8080 172.16.5.5 80
-ip nat source static tcp 192.168.3.10 2024 172.16.5.5 2024
+ip nat source static tcp {BR_SRV_IP} 8080 {BR_RTR_TO_ISP_IP} 80
+ip nat source static tcp {BR_SRV_IP} {SSH_PORT} {BR_RTR_TO_ISP_IP} {SSH_PORT}
 exit
 write
 
-HQ-RTR
+-----------HQ-RTR-----------
 en
 conf t
-ip nat source static tcp 192.168.1.10 2024 172.16.4.4 2024
+ip nat source static tcp {HQ_SRV_IP} {SSH_PORT} {HQ_RTR_TO_ISP_IP} {SSH_PORT}
 write 
 
-HQ-CLI
-ssh -p 2024 sshuser@172.16.5.5
-firefox -> http://172.16.5.5/
+-----------HQ-CLI-----------
+ssh -p {SSH_PORT} {SSH_USERNAME}@{BR_RTR_TO_ISP_IP}
+firefox -> http://{BR_RTR_TO_ISP_IP}/
 
-BR-SRV
-ssh -p 2024 sshuser@172.16.4.4
+-----------BR-SRV-----------
+ssh -p {SSH_PORT} {SSH_USERNAME}@{HQ_RTR_TO_ISP_IP}
 
 
 7. Запустить сервис moodle на сервере HQ-SRV.
-HQ-SRV
+-----------HQ-SRV-----------
 mysql_secure_installation
 Enter
 все Y 
@@ -342,12 +354,13 @@ GRANT ALL PRIVILEGES ON moodledb.* TO moodle;
 FLUSH PRIVILEGES;
 exit
 
-если не сработало, то удалить базу и сделать снова:
-mariadb -u root -p
-DROP DATABASE IF EXISTS moodledb;
-DROP USER IF EXISTS 'moodle'@'localhost';
-DROP USER IF EXISTS 'moodle'@'%';
-
+######################################################
+#если не сработало, то удалить базу и сделать снова:
+#mariadb -u root -p
+#DROP DATABASE IF EXISTS moodledb;
+#DROP USER IF EXISTS 'moodle'@'localhost';
+#DROP USER IF EXISTS 'moodle'@'%';
+######################################################
 
 unzip -o /root/moodle.zip -d /var/www/html && \
 mv /var/www/html/moodle-4.5.0/* /var/www/html/ && \
@@ -360,20 +373,19 @@ rm -f /var/www/html/index.html && \
 systemctl restart httpd2
 
 
-
-HQ-CLI
-http://192.168.1.10/install.php
+-----------HQ-CLI-----------
+http://{HQ_SRV_IP}/install.php
 
 Название базы данных:		moodledb
 Пользователь базы данных:	moodle
 Пароль:				P@ssw0rd
 
 
-HQ-SRV
+-----------HQ-SRV-----------
 sed -i "s|^\$CFG->dbtype\s*=.*|\\\$CFG->dbtype = 'mariadb';|" /var/www/html/config.php
 
 
-HQ-CLI
+-----------HQ-CLI-----------
 далее
 Логин:			admin
 Новый пароль:		P@ssw0rd
@@ -384,20 +396,20 @@ HQ-CLI
 Настройки 		Азия/Екат / Yekat	
 Контакты поддержки:	test.test@mail.ru
 
-HQ-SRV
+-----------HQ-SRV-----------
 sed -i "s|^\$CFG->wwwroot\s*=.*|\\\$CFG->wwwroot = 'http://moodle.au-team.irpo';|" /var/www/html/config.php && \
 sed -i '/^cname=/ s/hq-rtr/hq-cli/g' /etc/dnsmasq.conf && \
-grep -q 'hq-cli.au-team.irpo' /etc/hosts || echo '192.168.2.10    hq-cli.au-team.irpo' >> /etc/hosts
+grep -q 'hq-cli.au-team.irpo' /etc/hosts || echo '{HQ_CLI_IP}    hq-cli.au-team.irpo' >> /etc/hosts
 systemctl restart dnsmasq
 
-HQ-CLI
+-----------HQ-CLI-----------
 vim /etc/nginx/sites-available.d/proxy.conf
 :set paste → i
 server {
 	listen 80;
 	server_name moodle.au-team.irpo;
 	location / {
-		proxy_pass http://192.168.1.10:80;
+		proxy_pass http://{HQ_SRV_IP}:80;
 		proxy_set_header Host $host;
 		proxy_set_header X-Read-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
@@ -407,7 +419,7 @@ server {
 	listen 80;
 	server_name wiki.au-team.irpo;
 	location / {
-		proxy_pass http://192.168.3.10:8080;
+		proxy_pass http://{BR_SRV_IP}:8080;
 		proxy_set_header Host $host;
 		proxy_set_header X-Read-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
