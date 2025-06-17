@@ -48,10 +48,10 @@ s/{BR_SRV_IP}/192.168.3.10/g
 s/{BR_SRV_MASK}/27/g
 
 #-----------HQ-CLI-----------
-s/{HQ_CLI_IP}//g
-s/{HQ_CLI_MASK}//g
-s/{HQ_CLI_FULL_MASK}//g
-s/{REVERSE_IP_HQ_CLI}//g
+s/{HQ_CLI_IP}/192.168.2.10/g
+s/{HQ_CLI_MASK}/28/g
+s/{HQ_CLI_FULL_MASK}/255.255.255.240/g
+s/{REVERSE_IP_HQ_CLI}/10.2.168.192/g
 
 #25 - 255.255.255.128
 #26 - 255.255.255.192
@@ -89,12 +89,15 @@ s/{NAT2_NET_BR_RTR_TO_BR_SRV}/192.168.3.254/g
 s/{DHCP_CLI_IP}/192.168.2.10/g 
 
 #============SSH===================
-#НЕ РАБОТАЕТ. ЕСЛИ НЕ УБРАЛ, ТАК И НЕ СДЕЛАЛ
+#SRV
 s/{SSH_USERNAME}/sshuser/g 
 s/{SSH_USER_ID}/1010/g 
 s/{SSH_USER_PASSWORD}/P@ssw0rd/g 
-s/{SSH_PORT}/2024/g 
+s/{SSH_PORT}/2025/g 
 
+#RTR
+s/{SSH_RTR_USERNAME}/net_admin/g 
+s/{SSH_RTR_USER_PASSWORD}/P@ssw0rd/g 
 
 
 
