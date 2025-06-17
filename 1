@@ -129,7 +129,7 @@ useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} && \
 echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd && \
 sed -i 's/^# *\(WHEEL_USERS .*NOPASSWD: ALL\)/\1/' /etc/sudoers && \
 echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config && \
-echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd && \
+echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------HQ-RTR-----------
 username {SSH_RTR_USERNAME}
@@ -151,10 +151,10 @@ write
 -----------HQ-RTR-----------
 int int3
 description "{VLAN_LIKE_999}"
-ip address {HQ_RTR_MANAGEMENT_IP}/HQ_RTR_MANAGEMENT_MASK} 
+ip address {HQ_RTR_MANAGEMENT_IP}/{HQ_RTR_MANAGEMENT_MASK} 
 port te1
 service-instance te1/int3
-encapsulation dot1q {VLAN_LIKE_999}
+encapsulation dot1q {VLAN_MANAGEMENT}
 rewrite pop 1
 int int3
 connect port te1 service-instance te1/int3
@@ -233,17 +233,18 @@ ping 8.8.8.8 (success)
 
 -----------HQ-SRV-----------
 echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-ping 8.8.8.8 (success) && \
+ping 8.8.8.8
+
 apt-get update && apt-get install dnsmasq -y
 
 -----------BR-SRV-----------
 echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-ping 8.8.8.8 (success)
+ping 8.8.8.8
 
 -----------HQ-CLI-----------
 echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
 systemctl restart network && \
-ping 8.8.8.8 (success)
+ping 8.8.8.8
 
 
 
@@ -254,7 +255,7 @@ dhcp-server 1
 pool cli_pool 1
 mask {HQ_CLI_FULL_MASK}
 gateway {HQ_RTR_TO_HQ_CLI_IP}
-dns {HQ_SRV_IP}P
+dns {HQ_SRV_IP}
 domain-name {DOMAIN}
 ex
 exit
@@ -297,14 +298,11 @@ cname=moodle.{DOMAIN},hq-rtr.{DOMAIN}
 EOF
 
 echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.{DOMAIN}" >> /etc/hosts && \
-systemctctl restart dnsmasq
+systemctl restart dnsmasq
 
 ping google.com
 ping hq-rtr.{DOMAIN}
 ping br-srv.{DOMAIN}
-dig hq-rtr.{DOMAIN} (ANSWER SECTION должен быть IP )
-dig wiki.{DOMAIN} (wiki.{DOMAIN} → hq-rtr.{DOMAIN} → IP )
-
 
 -----------HQ-CLI-----------
 dig moodle.{DOMAIN}
