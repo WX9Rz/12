@@ -44,6 +44,7 @@ Active Directory Domain
 Workgroup: AU-TEAM
 Administrator
 P@ssw0rd
+
 BR-SRV
 sudo-schema-apply
 yes
@@ -55,8 +56,9 @@ create-sudo-rule
 Имя правила : prava_hq
 sudoCommand : /bin/cat
 sudoUser : %hq
-HQ-CLI
+/root/import.sh
 
+HQ-CLI (в графическом интерфейсе)
 kinit administrator
 P@ssw0rd
 admc
@@ -67,22 +69,20 @@ Preferences->Advanced Features->au-team.irpo-sudoers->prava_hq->attributes->sudo
 /bin/grep
 /usr/bin/id
 
-
 control sudo public && \
 sed -i 's/^services = nss, pam$/services = nss, pam, sudo/' /etc/sssd/sssd.conf && \
 sed -i '/^auth_provider = ad/a sudo_provider = ad' /etc/sssd/sssd.conf && \
 grep -q '^sudoers:' /etc/nsswitch.conf || sed -i '/^gshadow:/a sudoers: files sss' /etc/nsswitch.conf && \
 reboot
 
-
 rm -rf /var/lib/sss/db/* && sss_cache -E && systemctl restart sssd
 
-Ctrl+Alt+F2 (user1.hq)
+Ctrl+Alt+F2 в GUI (user1.hq)
+P@ssw0rd
 sudo -l -U user1.hq
 sudo cat /etc/passwd | sudo grep root && sudo id root
 
-BR-SRV
-/root/import.sh
+
 
 
 2-2. Сконфигурируйте файловое хранилище
@@ -102,7 +102,6 @@ exportfs -a && exportfs -v && \
 systemctl enable nfs && systemctl restart nfs
 
 HQ-CLI
-
 mkdir -p /mnt/nfs && \
 echo '192.168.1.10:/raid5/nfs /mnt/nfs nfs intr,soft,_netdev,x-systemd.automount 0 0' >> /etc/fstab && \
 mount -a && \
@@ -111,11 +110,8 @@ touch /mnt/nfs/test
 
 
 
-
 3. Настройте службу сетевого времени на базе сервиса chrony
-
 ISP
-
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
@@ -136,6 +132,7 @@ ntp timezone utc+5
 exit
 show ntp status
 write
+
 BR-RTR
 en
 conf t
@@ -144,8 +141,8 @@ ntp timezone utc+5
 exit
 show ntp status
 write
-BR-SRV
 
+BR-SRV
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
@@ -159,7 +156,6 @@ chronyc sources
 
 
 HQ-SRV
-
 sed -i -e 's/^pool/#pool/' \
        -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
@@ -173,7 +169,6 @@ chronyc sources
 
 
 HQ-CLI
-
 sed -i -e 's/^makestep/#makestep/' \
        -e 's/^rtcsync/#rtcsync/' \
        -e 's:^ntsdumpdir:#ntsdumpdir:' \
@@ -187,9 +182,7 @@ chronyc sources
 
 
 4. Сконфигурируйте ansible на сервере BR-SRV
-
 BR-SRV
-
 cat > /etc/ansible/hosts << 'EOF'
 [VMs]
 HQ-SRV ansible_host=192.168.1.10 ansible_user=sshuser ansible_port=2024
@@ -213,7 +206,8 @@ systemctl restart sshd
 
 
 HQ-SRV
-useradd -u 1010 sshuser && \
+useradd -u 1010 sshuser
+
 passwd sshuser && \
 gpasswd -a sshuser wheel && \
 sed -i 's/^# \(wheel\s*ALL=(ALL:ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers && \
@@ -231,9 +225,7 @@ ansible all -m ping
 
 
 5. Развертывание приложений в Docker на сервере BR-SRV.
-
 BR-SRV
-
 cat > /root/wiki.yml << EOF
 services:
  mariadb:
@@ -266,19 +258,29 @@ docker compose -f /root/wiki.yml up -d
 
 HQ-CLI
 systemctl restart network
+
+в GUI>
 FireFox > http://192.168.3.10:8080
 Setup MediaWiki
-Язык - Русский
+Язык - Русский, далее
+далее
 Хост базы данных - mariadb
 Имя базы данных - mediawiki
 Имя пользователя - wiki
+пароль: P@ssw0rd наверное, далее
+Далее
 Пароль - P@ssw0rd
 Название вики - Wiki
 Имя участника - wiki
-Пароль - WikiP@ssw0rd
-    • Хватит уже, просто установить вики.
-    • 
-useradd -u 1010 sshuser && \
+Пароль - wikiP@ssw0rd
+Просто установите вики, далее
+Далее
+Далее
+скачался файл (сам)
+
+BR_SRV
+useradd -u 1010 sshuser
+
 passwd sshuser && \
 gpasswd -a sshuser wheel && \
 sed -i 's/^# \(wheel\s*ALL=(ALL:ALL)\s*NOPASSWD:\s*ALL\)/\1/' /etc/sudoers && \
@@ -287,6 +289,7 @@ sed -i '/^Port /a AllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes
 echo "Authorized access only" > /etc/openssh/banner && \
 systemctl restart sshd
 
+HQ-CLI
 scp -P 2024 /home/user/Downloads/LocalSettings.php sshuser@192.168.3.10:/home/sshuser/
 
 
@@ -306,7 +309,7 @@ systemctl restart docker
 BR-RTR
 en
 conf t
-ip nat source static tcp 192.168.3.10 8080 172.16.5.5 80
+ip nat source static tcp 192.168.3.10 8080 172.16.5.5 80
 ip nat source static tcp 192.168.3.10 2024 172.16.5.5 2024
 exit
 write
@@ -320,19 +323,18 @@ write
 HQ-CLI
 ssh -p 2024 sshuser@172.16.5.5
 firefox -> http://172.16.5.5/
+
 BR-SRV
 ssh -p 2024 sshuser@172.16.4.4
 
 
 7. Запустить сервис moodle на сервере HQ-SRV.
-
 HQ-SRV
-
 mysql_secure_installation
 Enter
-Y
+все Y 
 P@ssw0rd
-Y
+все Y 
 
 mariadb -u root -p
 CREATE DATABASE moodledb;
@@ -341,14 +343,11 @@ GRANT ALL PRIVILEGES ON moodledb.* TO moodle;
 FLUSH PRIVILEGES;
 exit
 
-если не сработало, то удалить базу:
+если не сработало, то удалить базу и сделать снова:
 mariadb -u root -p
 DROP DATABASE IF EXISTS moodledb;
 DROP USER IF EXISTS 'moodle'@'localhost';
 DROP USER IF EXISTS 'moodle'@'%';
-
-
-
 
 
 unzip -o /root/moodle.zip -d /var/www/html && \
@@ -363,9 +362,7 @@ systemctl restart httpd2
 
 
 
-
 HQ-CLI
-
 http://192.168.1.10/install.php
 
 Название базы данных:		moodledb
@@ -381,12 +378,10 @@ HQ-CLI
 далее
 Логин:			admin
 Новый пароль:		P@ssw0rd
-Имя:			Администратор 
-Фамилия:		Пользователь 
 Адрес электронной 	test.test@mail.ru
 
-Полное название сайта:	moodle 
-Краткое сайта:		site
+Полное название сайта:	номер рабочего места 
+Краткое сайта:		moodle
 Настройки 		Азия/Екат / Yekat	
 Контакты поддержки:	test.test@mail.ru
 
@@ -397,7 +392,6 @@ grep -q 'hq-cli.au-team.irpo' /etc/hosts || echo '192.168.2.10    hq-cli.au-team
 systemctl restart dnsmasq
 
 HQ-CLI
-
 vim /etc/nginx/sites-available.d/proxy.conf
 :set paste → i
 server {
