@@ -15,16 +15,15 @@ apt-get update && apt-get install -y fdisk nfs-server chrony apache2 php8.2 apac
 curl -L https://github.com/moodle/moodle/archive/refs/tags/v4.5.0.zip -o /root/moodle.zip
 ISP
 apt-get update && apt-get install  -y chrony
+
 2-1. Настройте доменный контроллер Samba на машине BR-SRV
 BR-SRV
-
 rm -f /etc/samba/smb.conf && \
 echo -e '192.168.3.10\tbr-srv.au-team.irpo' >> /etc/hosts
 
 HQ-SRV
 echo 'server=/au-team.irpo/192.168.3.10' >> /etc/dnsmasq.conf && \
 systemctl restart dnsmasq
-
 
 BR-SRV
 echo -e "AU-TEAM.IRPO\nAU-TEAM\ndc\nSAMBA_INTERNAL\n192.168.1.10\nP@ssw0rd\nP@ssw0rd" | samba-tool domain provision
