@@ -1,9 +1,13 @@
 s/{DOMAIN}/au-team.irpo/g
 
 #-----------ISP-----------
+s/{ISP_TO_INTERNET}/ens18/g
+
+s/{ISP_TO_HQ_RTR_ENS}/ens19/g
 s/{ISP_TO_HQ_RTR_IP}/172.16.4.1/g
 s/{ISP_TO_HQ_RTR_MASK}/28/g
 
+s/{ISP_TO_BR_RTR_ENS}/ens20/g
 s/{ISP_TO_BR_RTR_IP}/172.16.5.1/g
 s/{ISP_TO_BR_RTR_MASK}/28/g
 
@@ -41,15 +45,18 @@ s/{BR_RTR_GRE_MASK}/30/g
 s/{MTU}/1400/g
 
 #-----------HQ-SRV-----------
+s/{HQ_SRV_ENS}/ens18/g
 s/{HQ_SRV_IP}/192.168.1.10/g
 s/{HQ_SRV_MASK}/26/g
 s/{REVERSE_IP_HQ_SRV}/10.1.168.192/g
 
 #-----------BR-SRV-----------
+s/{BR_SRV_ENS}/ens18/g
 s/{BR_SRV_IP}/192.168.3.10/g
 s/{BR_SRV_MASK}/27/g
 
 #-----------HQ-CLI-----------
+s/{HQ_CLI_ENS}/ens18/g
 s/{HQ_CLI_IP}/192.168.2.10/g
 s/{HQ_CLI_MASK}/28/g
 s/{HQ_CLI_FULL_MASK}/255.255.255.240/g
