@@ -1,12 +1,3 @@
-Дополнительно для упрощения жизни (но вы должны знать что вы делаете):
-apt-update && apt-get install -y curl
-1. curl -L https://raw.githubusercontent.com/WX9Rz/12/refs/heads/main/22 -o /root/22
-2. подставляете значения под ваш вариант в "vim /root/22";
-3. sed -f 22 2 > 0    #подменит все переменные
-4. less 0
-5. Получаете готовые команды, с уже подставленными IP и прочим.
-
-
 s/{DOMAIN}/au-team.irpo/g
 
 s/{ISP_TO_HQ_RTR_IP}/172.16.4.1/g
@@ -24,6 +15,3 @@ s/{SSH_USERNAME}/sshuser/g
 s/{SSH_USER_ID}/1010/g 
 s/{SSH_USER_PASSWORD}/P@ssw0rd/g 
 s/{SSH_PORT}/2025/g 
-
-
-
