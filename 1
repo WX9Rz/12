@@ -8,35 +8,37 @@ apt-update && apt-get install -y curl
 
 -----------ISP-----------
 hostnamectl set-hostname ISP; exec bash
+apt-get update && apt-get install --reinstall tzdata -y && apt-get install iptables -y
+timedatectl set-timezone Asia/Yekaterinburg && timedatectl
 
 -----------HQ-CLI-----------
-hostnamectl set-hostname hq-cli.au-team.irpo; exec bash
+hostnamectl set-hostname hq-cli.{DOMAIN}; exec bash
 vim /etc/net/ifaces/ens18/options
 	BOOTPROTO=static
 	TYPE=eth
 	DISABLED=no
 	CONFIG_IPv4=yes
 
-echo “{HQ_CLI_IP}/{HQ_CLI_MASK}” > /etc/net/ifaces/ens18/ipv4address
+echo "{HQ_CLI_IP}/{HQ_CLI_MASK}" > /etc/net/ifaces/ens18/ipv4address
 
-echo “default via {HQ_RTR_TO_HQ_CLI_IP}” > /etc/net/ifaces/ens18/ipv4route
+echo "default via {HQ_RTR_TO_HQ_CLI_IP}" > /etc/net/ifaces/ens18/ipv4route
 
 systemctl restart network
 ip -c a
 ip r
 
 -----------BR-SRV-----------
-hostnamectl set-hostname br-srv.au-team.irpo; exec bash
+hostnamectl set-hostname br-srv.{DOMAIN}; exec bash
 echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens18/options
 
-echo “{BR_SRV_IP}/{BR_SRV_MASK}” > /etc/net/ifaces/ens18/ipv4address
+echo "{BR_SRV_IP}/{BR_SRV_MASK}" > /etc/net/ifaces/ens18/ipv4address
 
-echo “default via {BR_RTR_TO_BR_SRV_IP}” > /etc/net/ifaces/ens18/ipv4route
+echo "default via {BR_RTR_TO_BR_SRV_IP}" > /etc/net/ifaces/ens18/ipv4route
 
 systemctl restart network && ip -c a && ip route
 
 -----------HQ-SRV-----------
-hostnamectl set-hostname hq-srv.au-team.irpo; exec bash
+hostnamectl set-hostname hq-srv.{DOMAIN}; exec bash
 echo -e "BOOTPROTO=static\nTYPE=eth\nCONFIG_IPv4=yes\nDISABLED=no" > /etc/net/ifaces/ens18/options
 
 echo "{HQ_SRV_IP}/{HQ_SRV_MASK}" > /etc/net/ifaces/ens18/ipv4address
@@ -47,10 +49,10 @@ systemctl restart network && ip -c a && ip route
 
 -----------BR-RTR-----------
 hostname br-rtr
-ip domain-name au-team.irpo
+ip domain-name {DOMAIN}
 
 int int0
-	description “to isp”
+	description "to isp"
 	ip address {BR_RTR_TO_ISP_IP}/{BR_RTR_TO_ISP_MASK}
 	port te0
 	service-instance te0/int0
@@ -60,7 +62,7 @@ int int0
 
 
 int int1
-	description “to br-srv”
+	description "to br-srv"
 	ip address {BR_RTR_TO_BR_SRV_IP}/{BR_RTR_TO_BR_SRV_MASK}
 	port te1
 	service-instance te1/int1
@@ -73,10 +75,10 @@ write
 
 -----------HQ-RTR-----------
 hostname hq-rtr
-ip domain-name au-team.irpo
+ip domain-name {DOMAIN}
 
 int int0
-	description “to isp”
+	description "to isp"
 	ip address  {HQ_RTR_TO_ISP_IP}/{HQ_RTR_TO_ISP_MASK}
 	port te0
 	service-instance te0/int0
@@ -85,7 +87,7 @@ int int0
 	connect port te0 service-instance te0/int0
 
 int int1
-	description “to hq-srv”
+	description "to hq-srv"
 	ip address {HQ_RTR_TO_HQ_SRV_IP}/{HQ_RTR_TO_HQ_SRV_MASK}
 	port te1
 	service-instance te1/int1
@@ -95,7 +97,7 @@ int int1
 	connect port te1 service-instance te1/int1
 
 int int2
-	description “to hq-cli”
+	description "to hq-cli"
 	ip address {HQ_RTR_TO_HQ_CLI_IP}/{HQ_RTR_TO_HQ_CLI_MASK}
 	port te1
 	service-instance te1/int2
@@ -123,7 +125,6 @@ vim /etc/net/sysctl.conf
 
 systemctl restart network
 ip -c a
-apt-get update && apt-get install iptables -y
 
 
 
@@ -135,9 +136,9 @@ echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
 vim /etc/sudoers
 	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
 
-echo -e “Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config
 
-echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
+echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------BR-SRV-----------
 useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} 
@@ -146,9 +147,9 @@ echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
 vim /etc/sudoers
 	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
 
-echo -e “Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+echo -e "Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner" >> /etc/openssh/sshd_config
 
-echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
+echo "Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------HQ-RTR-----------
 username {SSH_RTR_USERNAME}
@@ -169,7 +170,7 @@ write
 ================Глава 1.3 (VLAN 999 & GRE)================
 -----------HQ-RTR-----------
 int int3
-	description “{VLAN_LIKE_999}”
+	description "{VLAN_LIKE_999}"
 	ip address {HQ_RTR_MANAGEMENT_IP}/HQ_RTR_MANAGEMENT_MASK} 
 	port te1
 	service-instance te1/int3
@@ -279,7 +280,7 @@ dhcp-server 1
 	mask {HQ_CLI_FULL_MASK}
 	gateway {HQ_RTR_TO_HQ_CLI_IP}
 	dns {HQ_SRV_IP}P
-	domain-name au-team.irpo
+	domain-name {DOMAIN}
 	ex
 	exit
 
@@ -308,39 +309,36 @@ vim /etc/dnsmasq.conf (пишем прямо всерху)
 	server=8.8.8.8
 	interface=*
 
-	address=/hq-rtr.au-team.irpo/{HQ_RTR_TO_HQ_SRV_IP}
-	address=/br-rtr.au-team.irpo/{BR_RTR_TO_BR_SRV_IP}
-	address=/hq-srv.au-team.irpo/{HQ_SRV_IP} 
-	address=/hq-cli.au-team.irpo/{HQ_CLI_IP}
-	address=/br-srv.au-team.irpo/{BR_SRV_IP}
+	address=/hq-rtr.{DOMAIN}/{HQ_RTR_TO_HQ_SRV_IP}
+	address=/br-rtr.{DOMAIN}/{BR_RTR_TO_BR_SRV_IP}
+	address=/hq-srv.{DOMAIN}/{HQ_SRV_IP} 
+	address=/hq-cli.{DOMAIN}/{HQ_CLI_IP}
+	address=/br-srv.{DOMAIN}/{BR_SRV_IP}
 
-	ptr-record={REVERSE_IP_HQ_RTR}.in-addr.arpa,hq-rtr.au-team.irpo
-	ptr-record={REVERSE_IP_HQ_SRV}.in-addr.arpa,hq-srv.au-team.irpo
-	ptr-record={REVERSE_IP_HQ_CLI}.in-addr.arpa,hq-cli.au-team.irpo
+	ptr-record={REVERSE_IP_HQ_RTR}.in-addr.arpa,hq-rtr.{DOMAIN}
+	ptr-record={REVERSE_IP_HQ_SRV}.in-addr.arpa,hq-srv.{DOMAIN}
+	ptr-record={REVERSE_IP_HQ_CLI}.in-addr.arpa,hq-cli.{DOMAIN}
 
-	cname=wiki.au-team.irpo,hq-rtr.au-team.irpo
-	cname=moodle.au-team.irpo,hq-rtr.au-team.irpo
+	cname=wiki.{DOMAIN},hq-rtr.{DOMAIN}
+	cname=moodle.{DOMAIN},hq-rtr.{DOMAIN}
 	
-echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.au-team.irpo" >> /etc/hosts
+echo -e "{HQ_RTR_TO_HQ_SRV_IP}\thq-rtr.{DOMAIN}" >> /etc/hosts
 
 systemctctl restart dnsmasq
 
 ping google.com
-ping hq-rtr.au-team.irpo
-ping br-srv.au-team.irpo
-dig hq-rtr.au-team.irpo (ANSWER SECTION должен быть IP )
-dig wiki.au-team.irpo (wiki.au-team.irpo → hq-rtr.au-team.irpo → IP )
+ping hq-rtr.{DOMAIN}
+ping br-srv.{DOMAIN}
+dig hq-rtr.{DOMAIN} (ANSWER SECTION должен быть IP )
+dig wiki.{DOMAIN} (wiki.{DOMAIN} → hq-rtr.{DOMAIN} → IP )
 
 
 -----------HQ-CLI-----------
-dig moodle.au-team.irpo
-dig wiki.au-team.irpo
+dig moodle.{DOMAIN}
+dig wiki.{DOMAIN}
 
 
 ================Глава 1.8 (Time-Zone)================
------------ISP-----------
-apt-get update && apt-get install --reinstall tzdata -y
-timedatectl set-timezone Asia/Yekaterinburg && timedatectl
 
 -----------HQ-RTR, BR-RTR-----------
 ntp timezone utc+5
