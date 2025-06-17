@@ -1,3 +1,7 @@
+
+
+
+
 s/{DOMAIN}/au-team.irpo/g
 
 #-----------ISP-----------
@@ -18,7 +22,7 @@ s/{HQ_RTR_TO_ISP_MASK}/28/g
 s/{VLAN_TO_HQ_SRV}/100/g
 s/{HQ_RTR_TO_HQ_SRV_IP}/192.168.1.1/g
 s/{HQ_RTR_TO_HQ_SRV_MASK}/26/g
-#например 1.1.168.192, если на строку выше 192.168.1.1
+#example 1.1.168.192, if 192.168.1.1
 s/{REVERSE_IP_HQ_RTR}/1.1.168.192/g
 
 s/{VLAN_TO_HQ_CLI}/200/g
@@ -69,7 +73,7 @@ s/{REVERSE_IP_HQ_CLI}/10.2.168.192/g
 #29 - 255.255.255.248
 #30 - 255.255.255.252
 
-#============ПОДСЕТИ для OSPF============
+#============LAN for OSPF============
 s/{NET_HQ_RTR_TO_HQ_SRV}/192.168.1.0\/26/g 
 s/{NET_HQ_RTR_TO_HQ_CLI}/192.168.2.0\/28/g 
 s/{NET_BR_RTR_TO_BR_SRV}/192.168.3.0\/27/g 
@@ -77,24 +81,24 @@ s/{NET_TUNNEL_HQ_TO_BR}/172.16.0.0\/30/g
 s/{NET_HQ_RTR_TO_ISP}/172.16.4.0\/28/g 
 s/{NET_BR_RTR_TO_ISP}/172.16.5.0\/28/g 
 
-#============IP для NAT============
+#============IP for NAT============
 #нужен первый хост адрес подсети
 s/{NAT1_NET_HQ_RTR_TO_HQ_SRV}/192.168.1.1/g 
 #нужен последний хост адрес подсети
 s/{NAT2_NET_HQ_RTR_TO_HQ_SRV}/192.168.1.254/g 
 
-#нужен первый хост адрес подсети
+#first client host LAN
 s/{NAT1_NET_HQ_RTR_TO_HQ_CLI}/192.168.2.1/g 
-#нужен последний хост адрес подсети
+#last client host LAN
 s/{NAT2_NET_HQ_RTR_TO_HQ_CLI}/192.168.2.254/g 
 
-#нужен первый хост адрес подсети
+#first client host LAN
 s/{NAT1_NET_BR_RTR_TO_BR_SRV}/192.168.3.1/g 
-#нужен последний хост адрес подсети
+#last client host LAN
 s/{NAT2_NET_BR_RTR_TO_BR_SRV}/192.168.3.254/g 
 
 #============DHCP============
-#один не занятый IP из подсети CLI, напрмиер .10
+#one free IP net CLI, example .10
 s/{DHCP_CLI_IP}/192.168.2.10/g 
 
 #============SSH===================
