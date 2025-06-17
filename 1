@@ -129,37 +129,37 @@ apt-get update && apt-get install iptables -y
 
 ===============Глава 1.2 (ADD USERS)===================
 -----------HQ-SRV-----------
-useradd -u 1010 -G wheel sshuser 
-echo "sshuser:P@ssw0rd" | chpasswd
+useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} 
+echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
 
 vim /etc/sudoers
 	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
 
-echo -e “Port 2024\nAllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+echo -e “Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
 
 echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------BR-SRV-----------
-useradd -u 1010 -G wheel sshuser 
-echo "sshuser:P@ssw0rd" | chpasswd
+useradd -u {SSH_USER_ID} -G wheel {SSH_USERNAME} 
+echo "{SSH_USERNAME}:{SSH_USER_PASSWORD}" | chpasswd
 
 vim /etc/sudoers
 	WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL (раскоментить, почти в самом низу)
 
-echo -e “Port 2024\nAllowUsers sshuser\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
+echo -e “Port {SSH_PORT}\nAllowUsers {SSH_USERNAME}\nMaxAuthTries 2\nPasswordAuthentication yes\nBanner /etc/openssh/banner” >> /etc/openssh/sshd_config
 
 echo “Authorized access only" > /etc/openssh/banner && systemctl restart sshd
 
 -----------HQ-RTR-----------
-username net_admin
-password P@ssw0rd
+username {SSH_RTR_USERNAME}
+password {SSH_RTR_USER_PASSWORD}
 role admin
 ex
 write
 
 -----------BR-RTR-----------
-username net_admin
-password P@ssw0rd
+username {SSH_RTR_USERNAME}
+password {SSH_RTR_USER_PASSWORD}
 role admin
 ex
 write
