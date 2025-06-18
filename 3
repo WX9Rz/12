@@ -1,3 +1,13 @@
+настройка ssh
+SRV
+ssh sshuser@IP -p 2024
+RTR
+sudo useradd -m -s /bin/bash net_admin - создать нового пользователя, если не получается войти
+sudo passwd net_admin - создать нового пользователя, если не получается войти
+sudo passwd root - сменить пароль sudo на RTR
+
+
+
 #######################################################
 ### HQ-RTR (Главный маршрутизатор) ###
 #######################################################
@@ -6,15 +16,16 @@
 apt update
 apt install strongswan libcharon-extra-plugins -y
 
-mcedit /etc/ipsec.sh
-[Вставить содержимое:
+nano /etc/ipsec.sh
+#Вставить содержимое:
 ip link add vti0 type vti local 172.16.4.2 remote 172.16.5.2 key 1
 ip addr add 10.10.10.1/30 dev vti0
-ip link set vti0 up]
+ip link set vti0 up
+
 chmod +x /etc/ipsec.sh
 
-mcedit /etc/ipsec.conf
-[Вставить содержимое:
+nano /etc/ipsec.conf
+#Вставить содержимое:
 conn tunnel
     leftupdown=/etc/ipsec.sh
     left=172.16.4.2
@@ -26,26 +37,32 @@ conn tunnel
     auto=start
     mark=1
     type=tunnel
-    esp=aes256-sha256-modp1024]
+    esp=aes256-sha256-modp1024
 
-mcedit /etc/ipsec.secrets
-[Добавить строку: 172.16.4.2 172.16.5.2 : PSK "123qweR%"]
+nano /etc/ipsec.secrets
+#Добавить строку: 
+172.16.4.2 172.16.5.2 : PSK "123qweR%"
 
-mcedit /etc/strongswan.d/charon.conf
-[Изменить строку на: install_routes = no]
+nano /etc/strongswan.d/charon.conf
+#Изменить строку на: 
+install_routes = no
 
 # Удаление старого GRE-туннеля
-mcedit /etc/network/interfaces
-[Удалить всё, что относится к gre1]
+nano /etc/network/interfaces
+# Удалить блок gre1 #
+
+# потом вводим:
 ip tunnel del gre1
 vtysh
 conf t
 no interface gre1
-exit
 write
+exit
+exit
+ipsec restart
 
 ipsec restart
-ipsec status
+
 
 # --- Настройка межсетевого экрана ---
 iptables -A INPUT -i lo -j ACCEPT
@@ -59,11 +76,6 @@ iptables -A OUTPUT -j ACCEPT
 iptables-save > /root/rules
 iptables -L -v
 
-# --- Настройка Rsyslog ---
-mcedit /etc/rsyslog.conf
-[Раскомментировать модули imudp и imtcp, добавить в конец:
-*.warning @@192.168.1.2:514]
-systemctl restart rsyslog
 
 #######################################################
 ### BR-RTR (Второй маршрутизатор) ###
@@ -73,15 +85,16 @@ systemctl restart rsyslog
 apt update
 apt install strongswan libcharon-extra-plugins -y
 
-mcedit /etc/ipsec.sh
-[Вставить содержимое:
+nano /etc/ipsec.sh
+#Вставить содержимое:
 ip link add vti0 type vti local 172.16.5.2 remote 172.16.4.2 key 1
 ip addr add 10.10.10.2/30 dev vti0
-ip link set vti0 up]
+ip link set vti0 up
+
 chmod +x /etc/ipsec.sh
 
-mcedit /etc/ipsec.conf
-[Вставить содержимое:
+nano /etc/ipsec.conf
+#Вставить содержимое:
 conn tunnel
     leftupdown=/etc/ipsec.sh
     left=172.16.5.2
@@ -93,23 +106,27 @@ conn tunnel
     auto=start
     mark=1
     type=tunnel
-    esp=aes256-sha256-modp1024]
+    esp=aes256-sha256-modp1024
 
-mcedit /etc/ipsec.secrets
-[Добавить строку: 172.16.5.2 172.16.4.2 : PSK "123qweR%"]
+nano /etc/ipsec.secrets
+#Добавить строку: 
+172.16.5.2 172.16.4.2 : PSK "123qweR%"
 
-mcedit /etc/strongswan.d/charon.conf
-[Изменить строку на: install_routes = no]
+nano /etc/strongswan.d/charon.conf
+#Изменить строку на: 
+install_routes = no
 
 # Удаление старого GRE-туннеля
-mcedit /etc/network/interfaces
-[Удалить всё, что относится к gre1]
+nano /etc/network/interfaces
+#Удалить всё, что относится к gre1
+
 ip tunnel del gre1
 vtysh
 conf t
 no interface gre1
-exit
+end
 write
+exit
 
 ipsec restart
 ipsec status
@@ -126,62 +143,86 @@ iptables -A OUTPUT -j ACCEPT
 iptables-save > /root/rules
 iptables -L -v
 
-# --- Настройка Rsyslog ---
-mcedit /etc/rsyslog.conf
-[Раскомментировать модули imudp и imtcp, добавить в конец:
-*.warning @@192.168.1.2:514]
-systemctl restart rsyslog
+#######################################################
+### HQ-CLI на BR-SRV ###
+#######################################################
+ping 192.168.4.2 (успех)
+
 
 #######################################################
 ### HQ-SRV (Сервер) ###
 #######################################################
 
 # --- Настройка CUPS ---
-apt-get install cups cups-pdf -y
+apt-get update && apt-get install cups cups-pdf -y
 systemctl enable --now cups
-mcedit /etc/cups/cupsd.conf
-[Во всех блоках Location добавить строку: Allow all]
+
+nano /etc/cups/cupsd.conf
+#Во всех блоках Location добавить строку: Allow all (с отступом)
 systemctl restart cups
 
+
+#######################################################
+### HQ-CLI (Клиент печати) ###
+#######################################################
+
+# --- Настройка клиента печати ---
+lpadmin -p CUPS -E -v ipp://hq-srv.au-team.irpo:631/printers/Cups-PDF -m everywhere
+lpoptions -d CUPS
+lpstat -p
+lpadmin -x Cups-PDF
+lpstat -p
+
+#######################################################
+### HQ-SRV (Сервер) ###
+#######################################################
+
 # --- Настройка Rsyslog сервера ---
-apt-get install rsyslog -y
-mcedit /etc/rsyslog.d/00_common.conf
-[Добавить содержимое:
-module(load="imtcp")
-input(type="imtcp" port="514")
-$template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
-*.* ?RemoteLogs
-& stop]
-mkdir -p /opt
+apt-get update && apt-get install rsyslog -y
+nano /etc/rsyslog.d/00_common.conf
+    #Добавить содержимое куданибудь ближе к началу:
+    module(load="imtcp")
+    input(type="imtcp" port="514")
+
+    #эти в самый конец:
+    $template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
+    *.* ?RemoteLogs
+    & stop
+
 systemctl enable rsyslog
 systemctl restart rsyslog
 
-# --- Настройка ротации логов ---
-mcedit /etc/logrotate.d/rsyslog
-[Добавить содержимое:
-/opt/*/rsyslog.txt {
-    weekly
-    minsize 10M
-    compress
-    missingok
-    notifempty
-    create 0644 root root
-    rotate 4
-    dateext
-}]
+######################################
+#### HQ-RTR и BR-RTR
+######################################
+
+# --- Настройка Rsyslog ---
+nano /etc/rsyslog.conf
+    закомментировать imuxsock
+    раскоментить immark
+    дописать туда же: module(load="imjournal")
+
+    #добавить в конец: *.warning @@192.168.1.2:514
+    
+systemctl restart rsyslog
+
+
 
 #######################################################
 ### BR-SRV (Клиент) ###
 #######################################################
 
 # --- Настройка Rsyslog клиента ---
-apt-get install rsyslog rsyslog-journal -y
-mcedit /etc/rsyslog.d/00_common.conf
-[Добавить содержимое:
+apt-get update && apt-get install rsyslog rsyslog-journal -y
+nano /etc/rsyslog.d/00_common.conf
+#раскомментрировать:
 module(load="imjournal")
 module(load="imklog")
 module(load="immark")
-*.warning @@192.168.1.2:514]
+
+#добавить в конец файла:
+*.warning @@192.168.1.2:514
+
 systemctl enable rsyslog
 systemctl restart rsyslog
 
@@ -191,14 +232,27 @@ logger -p user.warning "Test warning"
 logger -p user.error "Test error"
 
 #######################################################
-### HQ-CLI (Клиент печати) ###
+### HQ-SRV (Ansible сервер) ###
 #######################################################
+cat /opt/br-srv/rsyslog.txt
 
-# --- Настройка клиента печати ---
-lpadmin -p CUPS -E -v ipp://hq-srv.au-team.irpo:631/printers/Cups-PDF -m everywhere
-lpoptions -d CUPS
-lpadmin -x Cups-PDF
-lpstat -p
+#######################################################
+### HQ-SRV (Сервер) ###
+#######################################################
+# --- Настройка ротации логов ---
+nano /etc/logrotate.d/rsyslog
+#Добавить содержимое:
+/opt/*/rsyslog.txt {
+    weekly
+    minsize 10M
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+    rotate 4
+    dateext
+}
+
 
 #######################################################
 ### BR-SRV (Ansible сервер) ###
@@ -206,8 +260,8 @@ lpstat -p
 
 # --- Настройка резервного копирования ---
 mkdir /etc/ansible/NETWORK_INFO
-mcedit /etc/ansible/backup.yml
-[Вставить содержимое:
+nano /etc/ansible/backup.yml
+#Вставить содержимое:
 ---
 - name: Резервное копирование конфигурации маршрутизаторов HQ-RTR и BR-RTR
   hosts:
@@ -248,7 +302,7 @@ mcedit /etc/ansible/backup.yml
         src: /etc/network/interfaces
         dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/interfaces"
         flat: yes
-      become: yes]
+      become: yes
 
 ansible-playbook /etc/ansible/backup.yml
 ls -la /etc/ansible/NETWORK_INFO
