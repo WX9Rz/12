@@ -1,25 +1,277 @@
-MODULE 4:
-Import-Module ActiveDirectory
+#######################################################
+### HQ-RTR (Главный маршрутизатор) ###
+#######################################################
 
-for ($i = 1; $i -le 5; $i++) {
-    $n = "Sales_$i"
-    New-ADUser -Name $n -Path "OU=Sales,DC=nskgk,DC=ru" -UserPrincipalName "$n@nskgk.ru" `
-        -SamAccountName $n -AccountPassword (ConvertTo-SecureString "P@sswOrd$i" -AsPlainText -Force) `
-        -Enabled $true -CannotChangePassword $true
-    Add-ADGroupMember -Identity Sales -Members $n
-}
+# --- Настройка IPsec-туннеля ---
+apt update
+apt install strongswan libcharon-extra-plugins -y
 
-Import-Module ActiveDirectory
+mcedit /etc/ipsec.sh
+[Вставить содержимое:
+ip link add vti0 type vti local 172.16.4.2 remote 172.16.5.2 key 1
+ip addr add 10.10.10.1/30 dev vti0
+ip link set vti0 up]
+chmod +x /etc/ipsec.sh
 
-for ($i = 1; $i -le 5; $i++) {
-    $n = "IT_$i"
-    New-ADUser -Name $n -Path "OU=IT,DC=nskgk,DC=ru" -UserPrincipalName "$n@nskgk.ru" `
-        -SamAccountName $n -AccountPassword (ConvertTo-SecureString "P@sswOrd$i" -AsPlainText -Force) `
-        -Enabled $true -CannotChangePassword $true
-    Add-ADGroupMember -Identity IT -Members $n
-}
+mcedit /etc/ipsec.conf
+[Вставить содержимое:
+conn tunnel
+    leftupdown=/etc/ipsec.sh
+    left=172.16.4.2
+    leftsubnet=0.0.0.0/0
+    right=172.16.5.2
+    rightsubnet=0.0.0.0/0
+    authby=secret
+    keyexchange=ikev2
+    auto=start
+    mark=1
+    type=tunnel
+    esp=aes256-sha256-modp1024]
 
-1. Вам нужно создать OU: IT и Sales.
-2. Внутри OU создать группы: IT и Sales.
-3. Запустить Windows PowerShell ISE.
-4. Запустить скрипт.
+mcedit /etc/ipsec.secrets
+[Добавить строку: 172.16.4.2 172.16.5.2 : PSK "123qweR%"]
+
+mcedit /etc/strongswan.d/charon.conf
+[Изменить строку на: install_routes = no]
+
+# Удаление старого GRE-туннеля
+mcedit /etc/network/interfaces
+[Удалить всё, что относится к gre1]
+ip tunnel del gre1
+vtysh
+conf t
+no interface gre1
+exit
+write
+
+ipsec restart
+ipsec status
+
+# --- Настройка межсетевого экрана ---
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -i eth0 -p tcp -m multiport --dports 22,53,80,443,2024 -j ACCEPT
+iptables -A INPUT -i eth0 -p udp -m multiport --dports 53,123,500,4500 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp -j ACCEPT
+iptables -A INPUT -p esp -j ACCEPT
+iptables -A FORWARD -p esp -j ACCEPT
+iptables -A INPUT -i eth0 -m state --state NEW -j DROP
+iptables -A OUTPUT -j ACCEPT
+iptables-save > /root/rules
+iptables -L -v
+
+# --- Настройка Rsyslog ---
+mcedit /etc/rsyslog.conf
+[Раскомментировать модули imudp и imtcp, добавить в конец:
+*.warning @@192.168.1.2:514]
+systemctl restart rsyslog
+
+#######################################################
+### BR-RTR (Второй маршрутизатор) ###
+#######################################################
+
+# --- Настройка IPsec-туннеля ---
+apt update
+apt install strongswan libcharon-extra-plugins -y
+
+mcedit /etc/ipsec.sh
+[Вставить содержимое:
+ip link add vti0 type vti local 172.16.5.2 remote 172.16.4.2 key 1
+ip addr add 10.10.10.2/30 dev vti0
+ip link set vti0 up]
+chmod +x /etc/ipsec.sh
+
+mcedit /etc/ipsec.conf
+[Вставить содержимое:
+conn tunnel
+    leftupdown=/etc/ipsec.sh
+    left=172.16.5.2
+    leftsubnet=0.0.0.0/0
+    right=172.16.4.2
+    rightsubnet=0.0.0.0/0
+    authby=secret
+    keyexchange=ikev2
+    auto=start
+    mark=1
+    type=tunnel
+    esp=aes256-sha256-modp1024]
+
+mcedit /etc/ipsec.secrets
+[Добавить строку: 172.16.5.2 172.16.4.2 : PSK "123qweR%"]
+
+mcedit /etc/strongswan.d/charon.conf
+[Изменить строку на: install_routes = no]
+
+# Удаление старого GRE-туннеля
+mcedit /etc/network/interfaces
+[Удалить всё, что относится к gre1]
+ip tunnel del gre1
+vtysh
+conf t
+no interface gre1
+exit
+write
+
+ipsec restart
+ipsec status
+
+# --- Настройка межсетевого экрана ---
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -i eth0 -p tcp -m multiport --dports 22,53,80,443,2024 -j ACCEPT
+iptables -A INPUT -i eth0 -p udp -m multiport --dports 53,123,500,4500 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp -j ACCEPT
+iptables -A INPUT -p esp -j ACCEPT
+iptables -A FORWARD -p esp -j ACCEPT
+iptables -A INPUT -i eth0 -m state --state NEW -j DROP
+iptables -A OUTPUT -j ACCEPT
+iptables-save > /root/rules
+iptables -L -v
+
+# --- Настройка Rsyslog ---
+mcedit /etc/rsyslog.conf
+[Раскомментировать модули imudp и imtcp, добавить в конец:
+*.warning @@192.168.1.2:514]
+systemctl restart rsyslog
+
+#######################################################
+### HQ-SRV (Сервер) ###
+#######################################################
+
+# --- Настройка CUPS ---
+apt-get install cups cups-pdf -y
+systemctl enable --now cups
+mcedit /etc/cups/cupsd.conf
+[Во всех блоках Location добавить строку: Allow all]
+systemctl restart cups
+
+# --- Настройка Rsyslog сервера ---
+apt-get install rsyslog -y
+mcedit /etc/rsyslog.d/00_common.conf
+[Добавить содержимое:
+module(load="imtcp")
+input(type="imtcp" port="514")
+$template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
+*.* ?RemoteLogs
+& stop]
+mkdir -p /opt
+systemctl enable rsyslog
+systemctl restart rsyslog
+
+# --- Настройка ротации логов ---
+mcedit /etc/logrotate.d/rsyslog
+[Добавить содержимое:
+/opt/*/rsyslog.txt {
+    weekly
+    minsize 10M
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+    rotate 4
+    dateext
+}]
+
+#######################################################
+### BR-SRV (Клиент) ###
+#######################################################
+
+# --- Настройка Rsyslog клиента ---
+apt-get install rsyslog rsyslog-journal -y
+mcedit /etc/rsyslog.d/00_common.conf
+[Добавить содержимое:
+module(load="imjournal")
+module(load="imklog")
+module(load="immark")
+*.warning @@192.168.1.2:514]
+systemctl enable rsyslog
+systemctl restart rsyslog
+
+# Тестирование логирования
+logger -p user.info "Test info"
+logger -p user.warning "Test warning"
+logger -p user.error "Test error"
+
+#######################################################
+### HQ-CLI (Клиент печати) ###
+#######################################################
+
+# --- Настройка клиента печати ---
+lpadmin -p CUPS -E -v ipp://hq-srv.au-team.irpo:631/printers/Cups-PDF -m everywhere
+lpoptions -d CUPS
+lpadmin -x Cups-PDF
+lpstat -p
+
+#######################################################
+### BR-SRV (Ansible сервер) ###
+#######################################################
+
+# --- Настройка резервного копирования ---
+mkdir /etc/ansible/NETWORK_INFO
+mcedit /etc/ansible/backup.yml
+[Вставить содержимое:
+---
+- name: Резервное копирование конфигурации маршрутизаторов HQ-RTR и BR-RTR
+  hosts:
+  - HQ-RTR
+  - BR-RTR
+  gather_facts: no
+  tasks:
+
+    - name: Создание локальных папок для резервных копий
+      ansible.builtin.file:
+        path: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/{{ item }}"
+        state: directory
+      loop:
+        - "frr"
+      delegate_to: localhost
+
+    - name: Копирование конфигурации FRR
+      ansible.builtin.fetch:
+        src: "/etc/frr/{{ item }}"
+        dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/frr/"
+        flat: yes
+      loop:
+        - "daemons"
+        - "frr.conf"
+        - "frr.conf.sav"
+        - "vtysh.conf"
+      become: yes
+
+    - name: Копирование сохранённых правил iptables
+      ansible.builtin.fetch:
+        src: /etc/iptablesRules
+        dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/iptablesRules"
+        flat: yes
+      become: yes
+
+    - name: Копирование конфигурации сетевых интерфейсов
+      ansible.builtin.fetch:
+        src: /etc/network/interfaces
+        dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/interfaces"
+        flat: yes
+      become: yes]
+
+ansible-playbook /etc/ansible/backup.yml
+ls -la /etc/ansible/NETWORK_INFO
+ls -la /etc/ansible/NETWORK_INFO/HQ-RTR
+ls -la /etc/ansible/NETWORK_INFO/BR-RTR
+cat /etc/ansible/NETWORK_INFO/HQ-RTR/interfaces
+
+#######################################################
+### Проверки ###
+#######################################################
+
+# Проверить туннель:
+ipsec status
+
+# Проверить iptables:
+iptables -L -v
+
+# Проверить логи:
+ls -la /opt/*/rsyslog.txt
+cat /opt/br-srv/rsyslog.txt
+
+# Проверить принтер:
+lpstat -p
+
+# Проверить соединение:
+ping 192.168.4.2 -c 4
