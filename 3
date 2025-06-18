@@ -260,6 +260,31 @@ nano /etc/logrotate.d/rsyslog
 
 # --- Настройка резервного копирования ---
 mkdir /etc/ansible/NETWORK_INFO
+nano /etc/ansible/inventory.yml
+---
+- name: Инвентаризация машин HQ-SRV и HQ-CLI
+  hosts:
+	- hq-srv
+	- hq-cli
+  gather_facts: yes
+  tasks:
+	- name: Создать отчёт с информацией рабочем месте
+  	delegate_to: localhost
+  	copy:
+    	dest: "/etc/ansible/PC_INFO/{{ ansible_hostname }}.yml"
+    	content: |
+      	---
+      	Имя компьютера: "{{ ansible_hostname }}"
+      	IP-адрес компьютера: "{{ ansible_default_ipv4.address }}"
+
+
+#проверяем
+ansible-playbook /etc/ansible/inventory.yml
+ls -la /etc/ansible/PC_INFO
+cat /etc/ansible/PC_INFO/hq-cli.yml
+cat /etc/ansible/PC_INFO/hq-srv.yml
+
+
 nano /etc/ansible/backup.yml
 #Вставить содержимое:
 ---
@@ -304,6 +329,8 @@ nano /etc/ansible/backup.yml
         flat: yes
       become: yes
 
+
+#проверяем
 ansible-playbook /etc/ansible/backup.yml
 ls -la /etc/ansible/NETWORK_INFO
 ls -la /etc/ansible/NETWORK_INFO/HQ-RTR
