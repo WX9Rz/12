@@ -1,10 +1,10 @@
 Дополнительно для упрощения жизни (но вы должны знать что вы делаете):
+#если вы ЭТО читаете, то я не сделал второй файл. И эти 5 пунктов бесполезны!
 1. curl -L https://raw.githubusercontent.com/WX9Rz/12/refs/heads/main/33 -o /root/33
 2. подставляете значения под ваш вариант в "vim /root/33";
 3. sed -f 33 3 > 0    #подменит все переменные
 4. cat 0
 5. Получаете готовые команды, с уже подставленными IP и прочим.
-
 
 
 # команды ssh. Это не требуется по заданию!
@@ -23,8 +23,7 @@ sudo passwd root - сменить пароль sudo на RTR
 #######################################################
 
 # --- Настройка IPsec-туннеля ---
-apt update
-apt install strongswan libcharon-extra-plugins -y
+apt update && apt install strongswan libcharon-extra-plugins -y
 
 nano /etc/ipsec.sh
 #Вставить содержимое:
