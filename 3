@@ -9,9 +9,12 @@
 
 # команды для подключения по ssh с CLI. Это не требуется по заданию!
 BR-RTR и HQ-RTR
-adduser sshuser3    #скипайте все вопросы про имя и тп
-задайте пароль P@ssw0rd
+adduser sshuser3    
+задайте пароль P@ssw0rd    #скипайте все вопросы про имя и тп
 nano /etc/ssh/sshd_config
+	#добавить sshuser3 в строку AllowUsers:
+ 	AllowUsers net_admin, sshuser3
+  	#добавить строчку:
 	PasswordAuthentication yes
 
 CLI (можно открыть несколько терминало)
