@@ -1,3 +1,6 @@
+#nano /etc/ipsec.secrets
+s/{PSK}/123qweR%/g
+
 ######CLI#########
 s/{CLI_IP}/192.168.2.7/g
 s/{CLI_MASK}/28/g
@@ -41,7 +44,7 @@ s/{BR_RTR_GRE_MASK}/30/g
 
 ###### ISP ######
 s/{ISP_TO_HQ_IP}/172.16.4.1/g
-s/{ISP_TO_HQ_MASK}/228/g
+s/{ISP_TO_HQ_MASK}/28/g
 
 s/{ISP_TO_BR_IP}/172.16.5.1/g
 s/{ISP_TO_BR_MASK}/28/g
