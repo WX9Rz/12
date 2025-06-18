@@ -20,7 +20,7 @@ nano /etc/ssh/sshd_config
 CLI (можно открыть несколько терминало)
 ssh sshuser@{HQ_SRV_IP} -p 2024      #HQ-SRV
 ssh sshuser3@{HQ_RTR_VLAN_200_IP}    #HQ-RTR
-ssh sshuser@{HQ_SRV_IP} -p 2024      #BR-SRV
+ssh sshuser@{BR_SRV_IP} -p 2024      #BR-SRV
 ssh sshuser3@{BR_RTR_TO_ISP_IP}      #BR-RTR
 
 ssh sshuser@{ISP_TO_HQ_IP} -p 2024       #ISP, вроде не нужен. не тестил доступ.
@@ -54,27 +54,26 @@ chmod +x /etc/ipsec.sh
 nano /etc/ipsec.conf
 #Вставить содержимое:
 conn tunnel
-    leftupdown=/etc/ipsec.sh
-    left={HQ_RTR_TO_ISP_IP}
-    leftsubnet=0.0.0.0/0
-    right={BR_RTR_TO_ISP_IP}
-    rightsubnet=0.0.0.0/0
-    authby=secret
-    keyexchange=ikev2
-    auto=start
-    mark=1
-    type=tunnel
-    esp=aes256-sha256-modp1024
+	leftupdown=/etc/ipsec.sh
+	left={HQ_RTR_TO_ISP_IP}
+	leftsubnet=0.0.0.0/0
+	right={BR_RTR_TO_ISP_IP}
+	rightsubnet=0.0.0.0/0
+	authby=secret
+	keyexchange=ikev2
+	auto=start
+	mark=1
+	type=tunnel
+	esp=aes256-sha256-modp1024
 
 nano /etc/ipsec.secrets
 #Добавить строку: 
 {HQ_RTR_TO_ISP_IP} {BR_RTR_TO_ISP_IP} : PSK "{PSK}"
 
 nano /etc/strongswan.d/charon.conf
-#Изменить строку на: 
+#Раскоментить и зменить строку на: 
 install_routes = no
 
-# Удаление старого GRE-туннеля
 nano /etc/network/interfaces
 # Удалить блок gre1 #
 
@@ -83,11 +82,9 @@ ip tunnel del gre1
 vtysh
 conf t
 no interface gre1
-write
+do write
+end
 exit
-exit
-ipsec restart
-
 ipsec restart
 
 
@@ -109,8 +106,7 @@ iptables -L -v
 #######################################################
 
 # --- Настройка IPsec-туннеля ---
-apt update
-apt install strongswan libcharon-extra-plugins -y
+apt update && apt install strongswan libcharon-extra-plugins -y
 
 nano /etc/ipsec.sh
 #Вставить содержимое:
@@ -123,27 +119,27 @@ chmod +x /etc/ipsec.sh
 nano /etc/ipsec.conf
 #Вставить содержимое:
 conn tunnel
-    leftupdown=/etc/ipsec.sh
-    left={BR_RTR_TO_ISP_IP}
-    leftsubnet=0.0.0.0/0
-    right={HQ_RTR_TO_ISP_IP}
-    rightsubnet=0.0.0.0/0
-    authby=secret
-    keyexchange=ikev2
-    auto=start
-    mark=1
-    type=tunnel
-    esp=aes256-sha256-modp1024
+	leftupdown=/etc/ipsec.sh
+	left={BR_RTR_TO_ISP_IP}
+	leftsubnet=0.0.0.0/0
+	right={HQ_RTR_TO_ISP_IP}
+	rightsubnet=0.0.0.0/0
+	authby=secret
+	keyexchange=ikev2
+	auto=start
+	mark=1
+	type=tunnel
+	esp=aes256-sha256-modp1024
 
 nano /etc/ipsec.secrets
 #Добавить строку: 
 {BR_RTR_TO_ISP_IP} {HQ_RTR_TO_ISP_IP} : PSK "{PSK}"
 
 nano /etc/strongswan.d/charon.conf
-#Изменить строку на: 
+#Раскоментить и зменить строку на:
 install_routes = no
 
-# Удаление старого GRE-туннеля
+
 nano /etc/network/interfaces
 #Удалить всё, что относится к gre1
 
@@ -184,8 +180,8 @@ ping {BR_SRV_IP} (успех)
 apt-get update && apt-get install cups cups-pdf -y
 systemctl enable --now cups
 
-nano /etc/cups/cupsd.conf
-#Во всех блоках Location добавить строку: Allow all (с отступом)
+mcedit /etc/cups/cupsd.conf
+Во всех блоках Location добавить строку: Allow all (с отступом) Их всего четыре.
 systemctl restart cups
 
 
@@ -206,11 +202,10 @@ lpstat -p
 
 # --- Настройка Rsyslog сервера ---
 apt-get update && apt-get install rsyslog -y
-nano /etc/rsyslog.d/00_common.conf
+mcedit /etc/rsyslog.d/00_common.conf
     #Добавить содержимое куданибудь ближе к началу:
     module(load="imtcp")
     input(type="imtcp" port="514")
-
     #эти в самый конец:
     $template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
     *.* ?RemoteLogs
@@ -227,9 +222,10 @@ systemctl restart rsyslog
 nano /etc/rsyslog.conf
     закомментировать imuxsock
     раскоментить immark
-    дописать туда же: module(load="imjournal")
-
-    #добавить в конец: *.warning @@{HQ_SRV_IP}:514
+    #дописать туда же: 
+    module(load="imjournal")
+    #добавить в конец: 
+    *.warning @@{HQ_SRV_IP}:514
     
 systemctl restart rsyslog
 
@@ -241,12 +237,11 @@ systemctl restart rsyslog
 
 # --- Настройка Rsyslog клиента ---
 apt-get update && apt-get install rsyslog rsyslog-journal -y
-nano /etc/rsyslog.d/00_common.conf
+mcedit /etc/rsyslog.d/00_common.conf
 #раскомментрировать:
 module(load="imjournal")
 module(load="imklog")
 module(load="immark")
-
 #добавить в конец файла:
 *.warning @@{HQ_SRV_IP}:514
 
@@ -270,14 +265,14 @@ cat /opt/br-srv/rsyslog.txt
 nano /etc/logrotate.d/rsyslog
 #Добавить содержимое:
 /opt/*/rsyslog.txt {
-    weekly
-    minsize 10M
-    compress
-    missingok
-    notifempty
-    create 0644 root root
-    rotate 4
-    dateext
+	weekly
+	minsize 10M
+	compress
+	missingok
+	notifempty
+	create 0644 root root
+	rotate 4
+	dateext
 }
 
 
