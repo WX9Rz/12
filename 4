@@ -1,0 +1,25 @@
+MODULE 4:
+Import-Module ActiveDirectory
+
+for ($i = 1; $i -le 5; $i++) {
+    $n = "Sales_$i"
+    New-ADUser -Name $n -Path "OU=Sales,DC=nskgk,DC=ru" -UserPrincipalName "$n@nskgk.ru" `
+        -SamAccountName $n -AccountPassword (ConvertTo-SecureString "P@sswOrd$i" -AsPlainText -Force) `
+        -Enabled $true -CannotChangePassword $true
+    Add-ADGroupMember -Identity Sales -Members $n
+}
+
+Import-Module ActiveDirectory
+
+for ($i = 1; $i -le 5; $i++) {
+    $n = "IT_$i"
+    New-ADUser -Name $n -Path "OU=IT,DC=nskgk,DC=ru" -UserPrincipalName "$n@nskgk.ru" `
+        -SamAccountName $n -AccountPassword (ConvertTo-SecureString "P@sswOrd$i" -AsPlainText -Force) `
+        -Enabled $true -CannotChangePassword $true
+    Add-ADGroupMember -Identity IT -Members $n
+}
+
+1. Вам нужно создать OU: IT и Sales.
+2. Внутри OU создать группы: IT и Sales.
+3. Запустить Windows PowerShell ISE.
+4. Запустить скрипт.
