@@ -2,15 +2,17 @@
 #эти действия подставят нужные значения в команды.
 1. curl -L https://raw.githubusercontent.com/WX9Rz/12/refs/heads/main/33 -o /root/33
 2. подставляете значения под ваш вариант в "vim /root/33";
-2.1. grep -v '^#' 33 > 33_clean
-3. sed -f 33_clean 3 > 0    #подменит все переменные
+3. grep -v '^#' 33 > 33_clean && sed -f 33_clean 3 > 0    #подменит все переменные
 4. cat 0
 5. Получаете готовые команды, с уже подставленными IP и прочим.
 
 
-# команды ssh. Это не требуется по заданию!
-SRV
-ssh sshuser@IP -p 2024
+# команды для подключения по ssh с CLI. Это не требуется по заданию!
+HQ-SRV   ssh sshuser@{HQ_SRV_IP} -p 2024
+HQ-RTR   ssh sshuser@{HQ_RTR_VLAN_200_IP} -p 2024
+BR-SRV   ssh sshuser@{HQ_SRV_IP} -p 2024
+BR-RTR   ssh sshuser@{BR_RTR_TO_ISP_IP} -p 2024
+ISP      ssh sshuser@{ISP_TO_HQ_IP} -p 2024
 
 RTR
 sudo useradd -m -s /bin/bash net_admin - создать нового пользователя, если не получается войти
