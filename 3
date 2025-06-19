@@ -373,6 +373,11 @@ mcedit /etc/ansible/inventory_report.yml
 
 
 
+
+#необходимо подключиться и выйти обратно. P@ssw0rd
+ssh sshuser@{HQ_SRV_IP} -p 2024      
+ssh sshuser@{CLI_IP} -p 2024   
+
 #проверяем
 ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/inventory_report.yml
 ls -la /etc/ansible/PC_INFO
@@ -431,6 +436,14 @@ mcedit /etc/ansible/backup.yml
       become: yes
 
 
+##### BR-RTR и HQ-RTR #####
+visudo
+#добавляем в конец
+sshuser3 ALL=(ALL) NOPASSWD: ALL
+
+
+### BR-SRV (Клиент) ###
+#проверка
 ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/backup.yml
 
 #######################################################
