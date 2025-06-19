@@ -60,5 +60,54 @@ foreach ($group in $groups) {
     }
 }
 
+############################################################################################
+
+Import-Module ActiveDirectory
+
+# OU
+$ouIT = "OU=IT,DC=nsgk,DC=ru"
+$ouSales = "OU=Sales,DC=nsgk,DC=ru"
+New-ADOrganizationalUnit -Name "IT" -Path "DC=nsgk,DC=ru" -ProtectedFromAccidentalDeletion $false
+New-ADOrganizationalUnit -Name "Sales" -Path "DC=nsgk,DC=ru" -ProtectedFromAccidentalDeletion $false
+
+# Groups
+New-ADGroup -Name "IT" -GroupScope Global -Path $ouIT -PassThru
+New-ADGroup -Name "Sales" -GroupScope Global -Path $ouSales -PassThru
+
+# Создание пользователей IT
+1..5 | ForEach-Object {
+    $username = "IT_$_"
+    $password = ConvertTo-SecureString "P@ssw0rd$_" -AsPlainText -Force
+    $homeFolder = "\\SRV1.nsgk.ru\IT\$username"
+
+    New-ADUser -Name $username `
+        -SamAccountName $username `
+        -UserPrincipalName "$username@nsgk.ru" `
+        -Path $ouIT `
+        -AccountPassword $password `
+        -Enabled $true `
+        -ChangePasswordAtLogon $false `
+        -HomeDrive "U:" `
+        -HomeDirectory $homeFolder
+
+    Add-ADGroupMember -Identity "IT" -Members $username
+}
+
+# Создание пользователей Sales
+1..5 | ForEach-Object {
+    $username = "Sales_$_"
+    $password = ConvertTo-SecureString "P@ssw0rd$_" -AsPlainText -Force
+
+    New-ADUser -Name $username `
+        -SamAccountName $username `
+        -UserPrincipalName "$username@nsgk.ru" `
+        -Path $ouSales `
+        -AccountPassword $password `
+        -Enabled $true `
+        -ChangePasswordAtLogon $false
+
+    Add-ADGroupMember -Identity "Sales" -Members $username
+}
+
 
 
