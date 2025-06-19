@@ -116,7 +116,9 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 
 #затем:
+#затем:
 systemctl daemon-reload
+systemctl enable iptables-restore.service
 systemctl restart iptables-restore.service
 systemctl status iptables-restore.service
 
@@ -201,6 +203,7 @@ WantedBy=multi-user.target
 
 #затем:
 systemctl daemon-reload
+systemctl enable iptables-restore.service
 systemctl restart iptables-restore.service
 systemctl status iptables-restore.service
 
