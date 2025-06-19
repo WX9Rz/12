@@ -7,8 +7,8 @@
 5. Получаете готовые команды, с уже подставленными IP и прочим.
 
 
-# команды для подключения по ssh с CLI. Это не требуется по заданию!
-BR-RTR и HQ-RTR
+
+##### BR-RTR и HQ-RTR #####
 adduser sshuser3    
 задайте пароль P@ssw0rd    #скипайте все вопросы про имя и тп
 nano /etc/ssh/sshd_config
@@ -19,7 +19,14 @@ nano /etc/ssh/sshd_config
  
 systemctl restart sshd
 
-CLI (можно открыть несколько терминало)
+visudo
+#добавляем в конец
+sshuser3 ALL=(ALL) NOPASSWD: ALL
+
+##################################################
+#####  ПО ЗАДАНИЮ ПОДКЛЮЧАТЬСЯ НЕ ТРЕБУЕТСЯ  #####
+
+CLI (можно открыть несколько терминалов)
 ssh sshuser@{HQ_SRV_IP} -p 2024      #HQ-SRV
 ssh sshuser3@{HQ_RTR_VLAN_200_IP}              #HQ-RTR
 ssh sshuser@{BR_SRV_IP} -p 2024      #BR-SRV
@@ -29,10 +36,9 @@ ssh sshuser@{ISP_TO_HQ_IP} -p 2024       #ISP, вроде не нужен. не 
 
 для авторизации пароль: P@ssw0rd
 Для "su -" пароль "1"
+#####                                        #####
+##################################################
 
-
-
-#далее все по заданию
 #######################################################
 ### HQ-RTR (Главный маршрутизатор) ###
 #######################################################
@@ -94,8 +100,26 @@ iptables -A INPUT -p esp -j ACCEPT
 iptables -A FORWARD -p esp -j ACCEPT
 iptables -A INPUT -i eth0 -m state --state NEW -j DROP
 iptables -A OUTPUT -j ACCEPT
-iptables-save > /root/rules
-iptables -L -v
+mkdir -p /etc/iptables
+iptables-save > /etc/iptables/rules.v4
+
+nano /etc/systemd/system/iptables-restore.service
+[Unit]
+Description=Load iptables rules
+Before=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/sbin/iptables-restore < /etc/iptables/rules.v4'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+#затем:
+systemctl daemon-reload
+systemctl restart iptables-restore.service
+systemctl status iptables-restore.service
 
 
 #######################################################
@@ -160,8 +184,27 @@ iptables -A INPUT -p esp -j ACCEPT
 iptables -A FORWARD -p esp -j ACCEPT
 iptables -A INPUT -i eth0 -m state --state NEW -j DROP
 iptables -A OUTPUT -j ACCEPT
-iptables-save > /root/rules
-iptables -L -v
+mkdir -p /etc/iptables
+iptables-save > /etc/iptables/rules.v4
+
+nano /etc/systemd/system/iptables-restore.service
+[Unit]
+Description=Load iptables rules
+Before=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/sbin/iptables-restore < /etc/iptables/rules.v4'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+#затем:
+systemctl daemon-reload
+systemctl restart iptables-restore.service
+systemctl status iptables-restore.service
+
 
 #######################################################
 ### HQ-CLI на BR-SRV ###
@@ -338,14 +381,18 @@ cat /etc/ansible/PC_INFO/hq-cli.yml
 cat /etc/ansible/PC_INFO/hq-srv.yml
 
 
+ssh-copy-id -p 22 sshuser3@{HQ_RTR_VLAN_200_IP}
+P@ssw0rd
+ssh-copy-id -p 22 sshuser3@{BR_RTR_TO_ISP_IP}
+P@ssw0rd
 mkdir /etc/ansible/NETWORK_INFO
 mcedit /etc/ansible/backup.yml
 #Вставить содержимое:
 ---
 - name: Резервное копирование конфигурации маршрутизаторов HQ-RTR и BR-RTR
   hosts:
-  - HQ-RTR
-  - BR-RTR
+    - HQ-RTR
+    - BR-RTR
   gather_facts: no
   tasks:
 
@@ -371,10 +418,11 @@ mcedit /etc/ansible/backup.yml
 
     - name: Копирование сохранённых правил iptables
       ansible.builtin.fetch:
-        src: /etc/iptablesRules
-        dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/iptablesRules"
+        src: /etc/iptables/rules.v4
+        dest: "/etc/ansible/NETWORK_INFO/{{ inventory_hostname }}/iptables.rules"
         flat: yes
       become: yes
+      ignore_errors: yes
 
     - name: Копирование конфигурации сетевых интерфейсов
       ansible.builtin.fetch:
@@ -384,29 +432,23 @@ mcedit /etc/ansible/backup.yml
       become: yes
 
 
-#проверяем
-ansible-playbook /etc/ansible/backup.yml
-ls -la /etc/ansible/NETWORK_INFO
-ls -la /etc/ansible/NETWORK_INFO/HQ-RTR
-ls -la /etc/ansible/NETWORK_INFO/BR-RTR
-cat /etc/ansible/NETWORK_INFO/HQ-RTR/interfaces
 
 #######################################################
 ### Проверки ###
 #######################################################
 
-# Проверить туннель:
+# Проверить туннель на rtr:
 ipsec status
 
-# Проверить iptables:
+# Проверить iptables на rtr:
 iptables -L -v
 
-# Проверить логи:
+# Проверить логи на hq-srv:
 ls -la /opt/*/rsyslog.txt
 cat /opt/br-srv/rsyslog.txt
 
-# Проверить принтер:
+# Проверить принтер на cli:
 lpstat -p
 
-# Проверить соединение:
+# Проверить соединение на hq-cli:
 ping {BR_SRV_IP} -c 4
