@@ -348,7 +348,7 @@ all:
 
 ##### ##### ##### ##### #####
 
-mcedit /etc/ansible/PC_INFO/inventory_report.yml
+mcedit /etc/ansible/inventory_report.yml
 ---
 - name: Инвентаризация машин HQ-SRV и HQ-CLI
   hosts: hq-srv,hq-cli
@@ -431,6 +431,7 @@ mcedit /etc/ansible/backup.yml
       become: yes
 
 
+ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/backup.yml
 
 #######################################################
 ### Проверки ###
