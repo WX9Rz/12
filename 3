@@ -21,20 +21,15 @@ systemctl restart sshd
 
 CLI (можно открыть несколько терминало)
 ssh sshuser@{HQ_SRV_IP} -p 2024      #HQ-SRV
-ssh sshuser3@{HQ_RTR_VLAN_200_IP}    #HQ-RTR
+ssh sshuser3@{HQ_RTR_VLAN_200_IP}              #HQ-RTR
 ssh sshuser@{BR_SRV_IP} -p 2024      #BR-SRV
-ssh sshuser3@{BR_RTR_TO_ISP_IP}      #BR-RTR
+ssh sshuser3@{BR_RTR_TO_ISP_IP}                #BR-RTR
 
 ssh sshuser@{ISP_TO_HQ_IP} -p 2024       #ISP, вроде не нужен. не тестил доступ.
 
 для авторизации пароль: P@ssw0rd
 Для "su -" пароль "1"
 
-
-RTR
-sudo useradd -m -s /bin/bash net_admin - создать нового пользователя, если не получается войти
-sudo passwd net_admin - создать нового пользователя, если не получается войти
-sudo passwd root - сменить пароль sudo на RTR
 
 
 #далее все по заданию
@@ -190,6 +185,9 @@ systemctl restart cups
 #######################################################
 ### HQ-CLI (Клиент печати) ###
 #######################################################
+apt-get update && apt-get install python3 -y
+#это для ANSIBLE
+
 
 # --- Настройка клиента печати ---
 lpadmin -p CUPS -E -v ipp://hq-srv.au-team.irpo:631/printers/Cups-PDF -m everywhere
@@ -198,6 +196,8 @@ lpstat -p
 lpadmin -x Cups-PDF
 lpstat -p
 
+#главное чтобы вконце был единственный CUPS принтер
+
 #######################################################
 ### HQ-SRV (Сервер) ###
 #######################################################
@@ -205,13 +205,13 @@ lpstat -p
 # --- Настройка Rsyslog сервера ---
 apt-get update && apt-get install rsyslog -y
 mcedit /etc/rsyslog.d/00_common.conf
-    #Добавить содержимое куданибудь ближе к началу:
-    module(load="imtcp")
-    input(type="imtcp" port="514")
-    #эти в самый конец:
-    $template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
-    *.* ?RemoteLogs
-    & stop
+#Добавить содержимое куданибудь ближе к началу:
+module(load="imtcp")
+input(type="imtcp" port="514")
+#эти в самый конец:
+$template RemoteLogs,"/opt/%HOSTNAME%/rsyslog.txt"
+*.* ?RemoteLogs
+& stop
 
 systemctl enable rsyslog
 systemctl restart rsyslog
@@ -222,8 +222,8 @@ systemctl restart rsyslog
 
 # --- Настройка Rsyslog ---
 nano /etc/rsyslog.conf
-    закомментировать imuxsock
-    раскоментить immark
+    закомментировать module(load="imuxsock"
+    раскоментить module(load="immark")
     #дописать туда же: 
     module(load="imjournal")
     #добавить в конец: 
@@ -250,7 +250,7 @@ module(load="immark")
 systemctl enable rsyslog
 systemctl restart rsyslog
 
-# Тестирование логирования
+# Тестирование логирования (МОЖНО ввести на hq-rtr, br-rtr и  br-srv)
 logger -p user.info "Test info"
 logger -p user.warning "Test warning"
 logger -p user.error "Test error"
@@ -258,13 +258,12 @@ logger -p user.error "Test error"
 #######################################################
 ### HQ-SRV (Ansible сервер) ###
 #######################################################
+cat /opt/hq-rtr/rsyslog.txt
+cat /opt/br-rtr/rsyslog.txt
 cat /opt/br-srv/rsyslog.txt
 
-#######################################################
-### HQ-SRV (Сервер) ###
-#######################################################
 # --- Настройка ротации логов ---
-nano /etc/logrotate.d/rsyslog
+mcedit /etc/logrotate.d/rsyslog
 #Добавить содержимое:
 /opt/*/rsyslog.txt {
 	weekly
@@ -283,33 +282,64 @@ nano /etc/logrotate.d/rsyslog
 #######################################################
 
 # --- Настройка резервного копирования ---
-mkdir /etc/ansible/NETWORK_INFO
-nano /etc/ansible/inventory.yml
+mkdir /etc/ansible/PC_INFO
+mcedit /etc/ansible/inventory.yml
+all:
+  hosts:
+    hq-srv:
+      ansible_host: {HQ_SRV_IP}
+      ansible_user: sshuser
+      ansible_port: 2024
+    hq-cli:
+      ansible_host: {CLI_IP}
+      ansible_user: sshuser
+      ansible_port: 2024
+      ansible_python_interpreter: /usr/bin/python3
+    HQ-RTR:
+      ansible_host: {HQ_RTR_TO_ISP_IP}
+      ansible_user: sshuser3
+      ansible_port: 22
+    BR-RTR:
+      ansible_host: {BR_RTR_IP}
+      ansible_user: sshuser3
+      ansible_port: 22
+
+##### ##### ##### ##### #####
+
+mcedit /etc/ansible/PC_INFO/inventory_report.yml
 ---
 - name: Инвентаризация машин HQ-SRV и HQ-CLI
-  hosts:
-	- hq-srv
-	- hq-cli
+  hosts: hq-srv,hq-cli
   gather_facts: yes
+
   tasks:
-	- name: Создать отчёт с информацией рабочем месте
-  	delegate_to: localhost
-  	copy:
-    	dest: "/etc/ansible/PC_INFO/{{ ansible_hostname }}.yml"
-    	content: |
-      	---
-      	Имя компьютера: "{{ ansible_hostname }}"
-      	IP-адрес компьютера: "{{ ansible_default_ipv4.address }}"
+    - name: Создать каталог для отчётов
+      delegate_to: localhost
+      file:
+        path: /etc/ansible/PC_INFO
+        state: directory
+        mode: '0755'
+
+    - name: Создать отчёт с информацией о рабочем месте
+      delegate_to: localhost
+      copy:
+        dest: "/etc/ansible/PC_INFO/{{ ansible_hostname }}.yml"
+        content: |
+          ---
+          Имя компьютера: "{{ ansible_hostname }}"
+          IP-адрес компьютера: "{{ ansible_default_ipv4.address }}"
+
 
 
 #проверяем
-ansible-playbook /etc/ansible/inventory.yml
+ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/inventory_report.yml
 ls -la /etc/ansible/PC_INFO
 cat /etc/ansible/PC_INFO/hq-cli.yml
 cat /etc/ansible/PC_INFO/hq-srv.yml
 
 
-nano /etc/ansible/backup.yml
+mkdir /etc/ansible/NETWORK_INFO
+mcedit /etc/ansible/backup.yml
 #Вставить содержимое:
 ---
 - name: Резервное копирование конфигурации маршрутизаторов HQ-RTR и BR-RTR
