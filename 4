@@ -1,3 +1,9 @@
+1. Вам нужно создать OU: IT и Sales.
+2. Внутри OU создать группы: IT и Sales.
+3. Запустить Windows PowerShell ISE.
+4. Запустить скрипт.
+
+
 Import-Module ActiveDirectory
 
 for ($i = 1; $i -le 5; $i++) {
@@ -18,7 +24,41 @@ for ($i = 1; $i -le 5; $i++) {
     Add-ADGroupMember -Identity IT -Members $n
 }
 
-1. Вам нужно создать OU: IT и Sales.
-2. Внутри OU создать группы: IT и Sales.
-3. Запустить Windows PowerShell ISE.
-4. Запустить скрипт.
+#########################################################################################################
+
+Import-Module ActiveDirectory
+
+# Настройки
+$domain = "nsgk.ru"
+$groups = @("IT", "Sales")
+
+foreach ($group in $groups) {
+    $ouPath = "OU=$group,DC=nsgk,DC=ru"
+
+    # Проверка, существует ли группа
+    if (-not (Get-ADGroup -Filter { Name -eq $group })) {
+        New-ADGroup -Name $group -GroupScope Global -Path $ouPath
+    }
+
+    for ($i = 1; $i -le 5; $i++) {
+        $username = "${group}_$i"
+        $userPrincipalName = "$username@$domain"
+        $password = ConvertTo-SecureString "P@ssw0rd$i" -AsPlainText -Force
+
+        # Создание пользователя
+        New-ADUser `
+            -Name $username `
+            -SamAccountName $username `
+            -UserPrincipalName $userPrincipalName `
+            -AccountPassword $password `
+            -Enabled $true `
+            -Path $ouPath `
+            -ChangePasswordAtLogon $false
+
+        # Добавление в группу
+        Add-ADGroupMember -Identity $group -Members $username
+    }
+}
+
+
+
